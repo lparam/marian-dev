@@ -502,6 +502,7 @@ void Config::addOptions(int argc, char** argv,
     SET_OPTION("normalize", bool);
     SET_OPTION("beam-size", size_t);
     SET_OPTION("allow-unk", bool);
+    SET_OPTION("trans-prop", size_t);
   }
   /** valid **/
 

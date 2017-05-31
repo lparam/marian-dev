@@ -82,7 +82,6 @@ class BeamSearch {
     Ptr<History> search(Ptr<ExpressionGraph> graph,
                         Ptr<data::CorpusBatch> batch,
                         size_t sentenceId = 0) {
-
       auto history = New<History>(sentenceId, options_->get<bool>("normalize"));
       Beam beam(1, New<Hypothesis>());
       bool first = true;
@@ -103,7 +102,6 @@ class BeamSearch {
 
       const int maxTranslationProportion = options_->get<int>("trans-prop");
       do {
-
         //**********************************************************************
         // create constant containing previous costs for current beam
         std::vector<size_t> hypIndices;

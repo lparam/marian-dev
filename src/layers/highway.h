@@ -2,7 +2,6 @@
 
 #include "layers/generic.h"
 
-
 namespace marian {
 
 class Motorway : public Layer {

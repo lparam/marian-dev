@@ -33,6 +33,7 @@
 # Temporaty files created by editors
 .*.sw*
 *~
+.ycm_extra_conf.py
 
 # CMake files
 build

@@ -142,8 +142,7 @@ class WordPenalty : public Scorer {
       p[0] = 0;
       p[2] = 0;
 
-      penalties_ = graph->constant(keywords::shape={1, dimVocab_},
-                                   keywords::init=inits::from_vector(p));
+      penalties_ = graph->constant({1, dimVocab_}, keywords::init=inits::from_vector(p));
       return New<WordPenaltyState>(dimVocab_, penalties_);
     }
 
@@ -174,8 +173,7 @@ class UnseenWordPenalty : public Scorer {
         p[i] = 0;
       p[2] = 0;
 
-      penalties_ = graph->constant(keywords::shape={1, dimVocab_},
-                                   keywords::init=inits::from_vector(p));
+      penalties_ = graph->constant({1, dimVocab_}, keywords::init=inits::from_vector(p));
       return New<WordPenaltyState>(dimVocab_, penalties_);
     }
 

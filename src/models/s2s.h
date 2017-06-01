@@ -137,6 +137,7 @@ class DecoderS2S : public DecoderBase {
     Ptr<GlobalAttention> attention_;
     Ptr<RNN<CGRU>> rnnL1;
     Ptr<MLRNN<GRU>> rnnLn;
+    Expr tiedOutputWeights_;
 
   public:
 
@@ -247,7 +248,15 @@ class DecoderS2S : public DecoderBase {
                             normalize=layerNorm)
                         (embeddings, outputLn, alignedContext);
 
-      auto logitsOut = Dense(prefix_ + "_ff_logit_l2", dimTrgVoc)(logitsL1);
+      Expr logitsOut;
+      if(options_->get<bool>("tied-embeddings")) {
+        if(!tiedOutputWeights_)
+          tiedOutputWeights_ = transpose(graph->get(prefix_ + "_Wemb"));
+
+        logitsOut = DenseTied(prefix_ + "_ff_logit_l2", tiedOutputWeights_, dimTrgVoc)(logitsL1);
+      }
+      else
+        logitsOut = Dense(prefix_ + "_ff_logit_l2", dimTrgVoc)(logitsL1);
 
       return New<DecoderStateS2S>(statesOut, logitsOut,
                                   state->getEncoderState());
@@ -278,7 +287,7 @@ class S2S : public EncoderDecoder<EncoderS2S, DecoderS2S> {
         int dimSrc = att->shape()[2];
         int dimTrg = att->shape()[3];
 
-        auto aln = graph->constant(shape={dimBatch, 1, dimSrc, dimTrg},
+        auto aln = graph->constant({dimBatch, 1, dimSrc, dimTrg},
                                    keywords::init=inits::from_vector(batch->getGuidedAlignment()));
 
         std::string guidedCostType = options_->get<std::string>("guided-alignment-cost");

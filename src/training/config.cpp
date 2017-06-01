@@ -228,7 +228,7 @@ void Config::addOptionsModel(po::options_description& desc, bool translate=false
   modelFeatures_ = {
     "type", "dim-vocabs", "dim-emb", "dim-pos", "dim-rnn",
     "layers-enc", "layers-dec", "skip", "layer-normalization",
-    "special-vocab"
+    "special-vocab", "tied-embeddings"
     /*"lexical-table", "vocabs"*/
   };
 
@@ -273,6 +273,8 @@ void Config::addOptionsTraining(po::options_description& desc) {
       "Set mini-batch size based on words instead of sentences.")
     ("dynamic-batching", po::value<bool>()->zero_tokens()->default_value(false),
       "Determine mini-batch size dynamically based on sentence-length and reserved memory")
+    ("tied-embeddings", po::value<bool>()->zero_tokens()->default_value(false),
+     "Tie target embeddings and output embeddings in output layer")
     ("maxi-batch", po::value<int>()->default_value(100),
       "Number of batches to preload for length-based sorting")
     ("optimizer,o", po::value<std::string>()->default_value("adam"),
@@ -355,6 +357,8 @@ void Config::addOptionsTranslate(po::options_description& desc) {
       ->multitoken()
       ->default_value(std::vector<int>({0}), "0"),
       "GPUs to use for translating.")
+    ("tied-embeddings", po::value<bool>()->zero_tokens()->default_value(false),
+     "Tie target embeddings and output embeddings in output layer")
     ("mini-batch", po::value<int>()->default_value(1),
       "Size of mini-batch used during update")
     ("maxi-batch", po::value<int>()->default_value(1),
@@ -439,6 +443,7 @@ void Config::addOptions(int argc, char** argv,
   SET_OPTION("conv-enc-type", std::string);
   SET_OPTION("layers-dec", int);
   SET_OPTION("skip", bool);
+  SET_OPTION("tied-embeddings", bool);
   SET_OPTION("layer-normalization", bool);
   SET_OPTION_NONDEFAULT("special-vocab", std::vector<size_t>);
 

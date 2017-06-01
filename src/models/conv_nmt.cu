@@ -107,7 +107,7 @@ ConvolutionalEncoder::prepareSource(Expr emb, Expr posEmb, Ptr<data::CorpusBatch
   auto xWord = reshape(rows(emb, wordIndeces), {batchSize, dimEmb, batchLength});
   auto xPos = reshape(rows(posEmb, posIndeces), {batchSize, dimEmb, batchLength});
   auto x = xWord + xPos;
-  auto xMask = graph->constant(shape={batchSize, 1, batchLength},
+  auto xMask = graph->constant({batchSize, 1, batchLength},
                                init=inits::from_vector(mask));
   return std::make_tuple(x, xMask);
 }

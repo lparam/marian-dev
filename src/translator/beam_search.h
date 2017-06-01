@@ -109,8 +109,7 @@ class BeamSearch {
         Expr prevCosts;
         if(first) {
           // no cost
-          prevCosts = graph->constant(keywords::shape={1, 1, 1, 1},
-                                      keywords::init=inits::from_value(0));
+          prevCosts = graph->constant({1, 1, 1, 1}, keywords::init=inits::from_value(0));
         }
         else {
           std::vector<float> beamCosts;
@@ -119,7 +118,7 @@ class BeamSearch {
             embIndices.push_back(hyp->GetWord());
             beamCosts.push_back(hyp->GetCost());
           }
-          prevCosts = graph->constant(keywords::shape={1, 1, 1, (int)beamCosts.size()},
+          prevCosts = graph->constant({1, 1, 1, (int)beamCosts.size()},
                                       keywords::init=inits::from_vector(beamCosts));
         }
 

@@ -7,7 +7,6 @@
 #include <cstdio>
 #include <boost/timer/timer.hpp>
 
-#include "marian.h"
 #include "graph/node_operators_binary.h"
 #include "graph/expression_graph.h"
 
@@ -319,9 +318,7 @@ struct GRUFastNodeOp : public NaryNodeOp {
   }
 };
 
-Expr gruOps(const std::vector<Expr>& nodes, bool final = false) {
-  return Expression<GRUFastNodeOp>(nodes, final);
-}
+Expr gruOps(const std::vector<Expr>& nodes, bool final = false);
 
 /***************************************************************/
 

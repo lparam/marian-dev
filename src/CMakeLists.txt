@@ -16,6 +16,7 @@ cuda_add_library(marian_lib
   kernels/dropout.cu
   kernels/sparse.cu
   layers/param_initializers.cpp
+  layers/rnn.cu
   layers/attention.cu
   common/utils.cpp
   common/logging.cpp
@@ -26,6 +27,7 @@ cuda_add_library(marian_lib
   translator/helpers.cu
   data/vocab.cpp
   data/corpus.cpp
+  models/conv_nmt.cu
   $<TARGET_OBJECTS:libyaml-cpp>
 )
 

@@ -1,4 +1,4 @@
-#include "attention.h"
+#include "layers/attention.h"
 
 namespace marian {
 

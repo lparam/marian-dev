@@ -15,9 +15,13 @@ class EncoderStateAmun : public EncoderState {
     Ptr<data::CorpusBatch> batch_;
 
   public:
-    EncoderStateAmun(Expr context, Expr mask,
+    EncoderStateAmun(Expr context,
+                     Expr mask,
                      Ptr<data::CorpusBatch> batch)
-    : context_(context), mask_(mask), batch_(batch) {}
+      : context_(context),
+        mask_(mask),
+        batch_(batch)
+    {}
 
     Expr getContext() { return context_; }
     Expr getMask() { return mask_; }

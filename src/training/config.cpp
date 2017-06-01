@@ -38,6 +38,7 @@ bool Config::has(const std::string& key) const {
 }
 
 YAML::Node Config::get(const std::string& key) const {
+  std::cerr << "getting: " << key << std::endl;
   return config_[key];
 }
 
@@ -209,8 +210,9 @@ void Config::addOptionsModel(po::options_description& desc, bool translate=false
     ("layer-normalization", po::value<bool>()->zero_tokens()->default_value(false),
      "Enable layer normalization")
     ("special-vocab", po::value<std::vector<size_t>>()->multitoken(),
-     "Model-specific special vocabulary ids");
-
+     "Model-specific special vocabulary ids")
+    ("conv-enc-type", po::value<std::string>()->default_value("pooling"),
+     "Convolutional encoder type");
 
   if(!translate) {
     model.add_options()
@@ -434,6 +436,7 @@ void Config::addOptions(int argc, char** argv,
   SET_OPTION("dim-pos", std::vector<int>);
   SET_OPTION("dim-rnn", std::vector<int>);
   SET_OPTION("layers-enc", std::vector<int>);
+  SET_OPTION("conv-enc-type", std::string);
   SET_OPTION("layers-dec", int);
   SET_OPTION("skip", bool);
   SET_OPTION("layer-normalization", bool);

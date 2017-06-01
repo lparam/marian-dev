@@ -151,17 +151,6 @@ Expr layer_norm(Expr x, Expr gamma, Expr beta) {
   return Expression<LayerNormalizationOp>(nodes);
 }
 
-//Expr batch_norm(Expr x, Expr gamma, Expr beta) {
-//  auto mju = mean(x, keywords::axis=0);
-//  auto xmmju = x - mju;
-//  auto std = sqrt(mean(square(xmmju), keywords::axis=0), 1e-9);
-//
-//  if(beta)
-//    return gamma * (xmmju / std) + beta;
-//  else
-//    return gamma * (xmmju / std);
-//}
-
 Expr shift(Expr a, Shape shift) {
   return Expression<ShiftNodeOp>(a, shift);
 }
@@ -169,5 +158,18 @@ Expr shift(Expr a, Shape shift) {
 Expr lexical_bias(Expr logits, Expr att, float eps, Ptr<sparse::CSR> lf) {
   return Expression<LexicalProbNodeOp>(logits, att, eps, lf);
 }
+
+#ifdef CUDNN
+
+Expr convolution(Expr x, Expr filters) {
+  std::vector<Expr> nodes = {x, filters};
+  return Expression<ConvolutionOp>(nodes);
+}
+
+Expr avg_pooling(Expr x) {
+  return Expression<MaxPoolingOp>(x);
+}
+
+#endif
 
 }

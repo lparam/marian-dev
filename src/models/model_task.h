@@ -4,6 +4,7 @@
 #include "models/s2s.h"
 #include "models/multi_s2s.h"
 #include "models/hardatt.h"
+#include "models/conv_nmt.h"
 
 namespace marian {
   
@@ -28,6 +29,8 @@ namespace marian {
       return New<TaskName<Wrapper<HardSoftAtt>>>(options);
     else if(type == "multi-hard-att")
       return New<TaskName<Wrapper<MultiHardSoftAtt>>>(options);
+    else if(type == "convNMT")
+      return New<TaskName<Wrapper<ConvNMT>>>(options);
     else
       UTIL_THROW2("Unknown model type: " << type);
   }

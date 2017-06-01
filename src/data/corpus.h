@@ -96,12 +96,16 @@ class CorpusBatch {
     CorpusBatch(const std::vector<Ptr<SubBatch>>& batches)
     : batches_(batches) {}
 
-    Ptr<SubBatch> operator[](size_t i) const {
+    Ptr<SubBatch> at(size_t i) const {
       return batches_[i];
     }
 
     Ptr<SubBatch> front() {
       return batches_.front();
+    }
+
+    Ptr<SubBatch> operator[](size_t i) const {
+      return at(i);
     }
 
     Ptr<SubBatch> back() {
@@ -176,11 +180,11 @@ class CorpusIterator
                                   SentenceTuple const,
                                   boost::forward_traversal_tag>
 {
- public:
+  public:
     CorpusIterator();
     explicit CorpusIterator(Corpus& corpus);
 
- private:
+  private:
     friend class boost::iterator_core_access;
 
     void increment();

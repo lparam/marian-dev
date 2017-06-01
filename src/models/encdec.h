@@ -26,7 +26,6 @@ class EncoderBase {
 
       auto subBatch = (*batch)[index];
 
-
       int dimBatch = subBatch->batchSize();
       int dimEmb = srcEmbeddings->shape()[1];
       int dimWords = subBatch->batchWidth();
@@ -80,10 +79,8 @@ class DecoderBase {
 
       int dimVoc = options_->get<std::vector<int>>("dim-vocabs").back();
       int dimEmb = options_->get<std::vector<int>>("dim-emb").front();
-
-      auto yEmb = Embedding(prefix_ + "_Wemb", dimVoc, dimEmb)(graph);
-
-      auto subBatch = (*batch)[index];
+      auto yEmb = Embedding("Wemb_dec", dimVoc, dimEmb)(graph);
+      auto subBatch = batch->back();
       int dimBatch = subBatch->batchSize();
       int dimWords = subBatch->batchWidth();
 
@@ -135,7 +132,6 @@ class DecoderBase {
 
 class EncoderDecoderBase {
   public:
-
     virtual void load(Ptr<ExpressionGraph>,
                       const std::string&) = 0;
 
@@ -201,7 +197,6 @@ class EncoderDecoder : public EncoderDecoderBase {
                              args...)),
        inference_(Get(keywords::inference, false, args...))
     { }
-
 
     Ptr<EncoderBase> getEncoder() {
       return encoder_;

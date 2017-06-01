@@ -131,4 +131,8 @@ Expr shift(Expr, Shape);
 
 Expr lexical_bias(Expr logits, Expr att, float exp, Ptr<sparse::CSR> lf);
 
+Expr convolution(Expr x, Expr filters);
+
+Expr avg_pooling(Expr x);
+
 }

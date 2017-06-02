@@ -20,7 +20,7 @@ bool test_vectors(const std::vector<float>& output, const std::vector<float>& co
 }
 
 int main(int argc, char** argv) {
-  auto config = Config(argc, argv, false, false);
+  auto config = Config(argc, argv, false, true);
   auto graph = New<ExpressionGraph>(false);
   graph->setDevice(0);
   graph->reserveWorkspaceMB(128);
@@ -36,7 +36,7 @@ int main(int argc, char** argv) {
   std::vector<float> embMask(elemNum);
 
   for (size_t i = 0; i < embData.size(); ++i) {
-    embData[i] = i;
+    embData[i] =  1 / (float(i) + 1);
     if (i < dimBatch * batchLength) {
       embMask[i] = 1;
     }
@@ -45,8 +45,12 @@ int main(int argc, char** argv) {
   auto x = graph->param("x", {dimBatch, dimWord, batchLength},
                         keywords::init=inits::from_vector(embData));
 
-  // auto output = Highway("highway", 4)(x);
+  auto output = Highway("highway", 4)(x);
+
+  debug(x, "X");
+  debug(output, "wghiway");
 
   graph->forward();
+  graph->backward();
   return 0;
 }

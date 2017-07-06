@@ -185,7 +185,7 @@ Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
 
   // setting up conditional (transitional) cell
   auto baseCell = rnn::stacked_cell(graph);
-  for(int i = 1; i <= decoderBaseDepth; ++i) {
+  for(size_t i = 1; i <= decoderBaseDepth; ++i) {
     auto paramPrefix = prefix_ + "_cell" + std::to_string(i);
     baseCell.push_back(rnn::cell(graph)
                        ("prefix", paramPrefix)
@@ -199,11 +199,11 @@ Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
   rnn.push_back(baseCell);
 
   // Add more cells to RNN (stacked RNN)
-  for(int i = 2; i <= decoderLayers; ++i) {
+  for(size_t i = 2; i <= decoderLayers; ++i) {
     // deep transition
     auto highCell = rnn::stacked_cell(graph);
 
-    for(int j = 1; j <= decoderHighDepth; j++) {
+    for(size_t j = 1; j <= decoderHighDepth; j++) {
       auto paramPrefix = prefix_ + "_l" + std::to_string(i) + "_cell" + std::to_string(j);
       highCell.push_back(rnn::cell(graph)
                          ("prefix", paramPrefix));
@@ -235,7 +235,8 @@ Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
 public:
   template <class... Args>
   DecoderS2S(Ptr<Config> options, Args... args)
-      : DecoderBase(options, args...) {}
+      : DecoderBase(options, args...)
+  {}
 
   virtual Ptr<DecoderState> startState(Ptr<EncoderState> encState) {
     using namespace keywords;
@@ -275,8 +276,9 @@ public:
       embeddings = dropout(embeddings, mask = trgWordDrop);
     }
 
-    if(!rnn_)
+    if(!rnn_) {
       rnn_ = constructDecoderRNN(graph, state);
+    }
 
     // apply RNN to embeddings, initialized with encoder context mapped into
     // decoder space

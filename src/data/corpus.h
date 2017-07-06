@@ -83,6 +83,7 @@ public:
   CorpusBatch(const std::vector<Ptr<SubBatch>>& batches) : batches_(batches) {}
 
   Ptr<SubBatch> operator[](size_t i) const { return batches_[i]; }
+  Ptr<SubBatch> at(size_t i) const { return batches_[i]; }
 
   Ptr<SubBatch> front() { return batches_.front(); }
 

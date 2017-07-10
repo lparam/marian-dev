@@ -80,7 +80,7 @@ private:
 
     auto conv_1 = Convolution("Conv1", 3, 3, 32)(x);
     auto conv_2 = relu(Convolution("Conv2", 3, 3, 64)(conv_1));
-    auto pool = MaxPooling("MaxPooling", 2, 2)(conv_2);
+    auto pool = Pooling("MaxPooling", "max_pooling", 2, 2)(conv_2);
 
     auto flatten = reshape(pool, {pool->shape()[0], pool->shape()[1] * pool->shape()[2] * pool->shape()[3], 1, 1});
     auto drop1 = dropout(flatten, keywords::dropout_prob=0.25);

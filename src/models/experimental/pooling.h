@@ -14,15 +14,11 @@ private:
 
 public:
   EncoderStatePooling(Expr context, Expr attended, Expr mask, Ptr<data::CorpusBatch> batch)
-      : context_(context), attended_(attended), mask_(mask), batch_(batch) {}
+      : EncoderState(context, mask, batch),
+        attended_(attended)
+  {}
 
-  virtual Expr getContext() { return context_; }
   virtual Expr getAttended() { return attended_; }
-  virtual Expr getMask() { return mask_; }
-
-  virtual const std::vector<size_t>& getSourceWords() {
-    return batch_->front()->indeces();
-  }
 };
 
 Expr MeanInTime(Ptr<ExpressionGraph> graph, Expr x, int k) {
@@ -81,52 +77,74 @@ public:
                           size_t batchIdx) {
     using namespace keywords;
 
-    int dimSrcVoc = options_->get<std::vector<int>>("dim-vocabs")[batchIdx];
-    int dimSrcEmb = options_->get<int>("dim-emb");
+    int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIdx];
+    int dimEmb = opt<int>("dim-emb");
 
-    auto xEmb = Embedding(prefix_ + "_Wemb", dimSrcVoc, dimSrcEmb)(graph);
+    auto embFactory = embedding(graph)
+                      ("prefix", prefix_ + "_Wemb")
+                      ("dimVocab", dimVoc)
+                      ("dimEmb", dimEmb);
+
+    if(options_->has("embedding-fix-src"))
+      embFactory
+        ("fixed", opt<bool>("embedding-fix-src"));
+
+    if(options_->has("embedding-vectors")) {
+      auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
+      embFactory
+        ("embFile", embFiles[batchIdx])
+        ("normalization", opt<bool>("embedding-normalization"));
+    }
+
+    auto xEmb = embFactory.construct();
 
     Expr w, xMask;
-    std::tie(w, xMask) = prepareSource(xEmb, batch, batchIdx);
+    std::tie(w, xMask) = lookup(xEmb, batch, batchIdx);
 
     int dimBatch = w->shape()[0];
     int dimSrcWords = w->shape()[2];
 
     int dimMaxLength = options_->get<size_t>("max-length") + 1;
-    auto pEmb = Embedding(prefix_ + "_Pemb", dimMaxLength, dimSrcEmb)(graph);
+    auto pEmb = embedding(graph)
+                ("prefix", prefix_ + "_Pemb")
+                ("dimVocab", dimMaxLength)
+                ("vimEmb", dimEmb)
+                .construct();
 
     std::vector<size_t> pIndices;
-    for(int i = 0; i < dimSrcWords; ++i)
-      for(int j = 0; j < dimBatch; j++)
+    for (int i = 0; i < dimSrcWords; ++i)
+      for (int j = 0; j < dimBatch; ++j)
         pIndices.push_back(i);
 
-    auto p = reshape(rows(pEmb, pIndices), {dimBatch, dimSrcEmb, dimSrcWords});
+    auto p = reshape(rows(pEmb, pIndices), {dimBatch, dimEmb, dimSrcWords});
     auto x = w + p;
 
     int k = 3;
     int layersC = 6;
     int layersA = 3;
 
-    auto Wup = graph->param("W_c_up", {dimSrcEmb, 2 * dimSrcEmb}, init=inits::glorot_uniform);
-    auto Bup = graph->param("b_c_up", {1, 2 * dimSrcEmb}, init=inits::zeros);
+    auto Wup = graph->param("W_c_up", {dimEmb, 2 * dimEmb}, init=inits::glorot_uniform);
+    auto Bup = graph->param("b_c_up", {1, 2 * dimEmb}, init=inits::zeros);
 
-    auto Wdown = graph->param("W_c_down", {2 * dimSrcEmb, dimSrcEmb}, init=inits::glorot_uniform);
-    auto Bdown = graph->param("b_c_down", {1, dimSrcEmb}, init=inits::zeros);
+    auto Wdown = graph->param("W_c_down", {2 * dimEmb, dimEmb}, init=inits::glorot_uniform);
+    auto Bdown = graph->param("b_c_down", {1, dimEmb}, init=inits::zeros);
 
     auto cnnC = affine(x, Wup, Bup);
-    for(int i = 0; i < layersC; ++i)
-       cnnC = ConvolutionInTime(graph, cnnC, k, "cnn-c." + std::to_string(i));
+    for (int i = 0; i < layersC; ++i) {
+      cnnC = ConvolutionInTime(graph, cnnC, k, "cnn-c." + std::to_string(i));
+    }
     cnnC = affine(cnnC, Wdown, Bdown);
 
     auto cnnA = x;
-    for(int i = 0; i < layersA; ++i)
-       cnnA = ConvolutionInTime(graph, cnnA, k, "cnn-a." + std::to_string(i));
+    for (int i = 0; i < layersA; ++i) {
+      cnnA = ConvolutionInTime(graph, cnnA, k, "cnn-a." + std::to_string(i));
+    }
 
     return New<EncoderStatePooling>(cnnC, cnnA + x, xMask, batch);
   }
 };
 
-typedef EncoderDecoder<EncoderPooling, DecoderS2S> Pooling;
+typedef EncoderDecoder<EncoderPooling, DecoderS2S> PoolingModel;
 
 
 }

@@ -103,15 +103,17 @@ class Convolution {
     int kernelNum_;
 };
 
-class MaxPooling {
+class Pooling {
   public:
-    MaxPooling(
+    Pooling(
         const std::string& name,
+        const std::string type,
         int height = 1,
         int width = 1,
         int strideHeight = 1,
         int strideWidth = 1)
       : name_(name),
+        type_(type),
         height_(height),
         width_(width),
         strideHeight_(strideHeight),
@@ -120,12 +122,71 @@ class MaxPooling {
 
     Expr operator()(Expr x) {
       params_ = {};
-      return max_pooling(x, height_, width_, 0, 0, strideHeight_, strideWidth_);
+      if (type_ == "max_pooling") {
+        return max_pooling(x, height_, width_, 0, 0,
+                           strideHeight_, strideWidth_);
+      } else if (type_ == "avg_pooling") {
+        return avg_pooling(x, height_, width_, 0, 0,
+                           strideHeight_, strideWidth_);
+      }
+      return nullptr;
+    }
+
+    Expr convert2NCHW(Expr x) {
+      std::vector<size_t> newIndeces;
+      int batchDim = x->shape()[0];
+      int sentenceDim = x->shape()[2];
+
+      for (int b = 0; b < batchDim; ++b) {
+        for (int t = 0; t < sentenceDim; ++t) {
+          newIndeces.push_back((t * batchDim) + b);
+        }
+      }
+
+      Shape shape({batchDim, 1, sentenceDim, x->shape()[1]});
+      return  reshape(rows(x, newIndeces), shape);
+    }
+
+    Expr convert2Marian(Expr x, Expr originalX) {
+      std::vector<size_t> newIndeces;
+      int batchDim = x->shape()[0];
+      int sentenceDim = x->shape()[2];
+
+      auto pooled = reshape(x, {batchDim * sentenceDim, x->shape()[1], 1, x->shape()[3]});
+
+      newIndeces.clear();
+      for (int t = 0; t < sentenceDim; ++t) {
+        for (int b = 0; b < batchDim; ++b) {
+          newIndeces.push_back(b * sentenceDim + t);
+        }
+      }
+
+      return reshape(rows(pooled, newIndeces), originalX->shape());
+    }
+
+    Expr operator()(Expr x, Expr mask) {
+      params_ = {};
+
+      auto masked = x * mask;
+
+      auto xNCHW = convert2NCHW(masked);
+
+      Expr output;
+      if (type_ == "max_pooling") {
+        output = max_pooling(xNCHW, height_, width_, 0, 0,
+                             strideHeight_, strideWidth_);
+      } else if (type_ == "avg_pooling") {
+        output = avg_pooling(xNCHW, height_, width_, 0, 0,
+                             strideHeight_, strideWidth_);
+      }
+
+      return convert2Marian(output, x) * mask;
     }
 
   private:
     std::vector<Expr> params_;
     std::string name_;
+    std::string type_;
 
   protected:
     int height_;

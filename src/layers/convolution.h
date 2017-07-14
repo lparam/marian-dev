@@ -104,29 +104,34 @@ class Convolution {
 };
 
 class Pooling {
-  public:
-    Pooling(
-        const std::string& name,
-        const std::string type,
-        int height = 1,
-        int width = 1,
-        int strideHeight = 1,
-        int strideWidth = 1)
-      : name_(name),
-        type_(type),
-        height_(height),
-        width_(width),
-        strideHeight_(strideHeight),
-        strideWidth_(strideWidth) {
-    }
+public:
+  Pooling(
+      const std::string& name,
+      const std::string type,
+      int height = 1,
+      int width = 1,
+      int paddingHeight = 0,
+      int paddingWidth = 0,
+      int strideHeight = 1,
+      int strideWidth = 1)
+    : name_(name),
+      type_(type),
+      height_(height),
+      width_(width),
+      paddingHeight_(paddingHeight),
+      paddingWidth_(paddingWidth),
+      strideHeight_(strideHeight),
+      strideWidth_(strideWidth)
+  {
+  }
 
     Expr operator()(Expr x) {
       params_ = {};
       if (type_ == "max_pooling") {
-        return max_pooling(x, height_, width_, 0, 0,
+        return max_pooling(x, height_, width_, paddingHeight_, paddingWidth_,
                            strideHeight_, strideWidth_);
       } else if (type_ == "avg_pooling") {
-        return avg_pooling(x, height_, width_, 0, 0,
+        return avg_pooling(x, height_, width_, paddingHeight_, paddingWidth_,
                            strideHeight_, strideWidth_);
       }
       return nullptr;
@@ -193,6 +198,8 @@ class Pooling {
     int width_;
     int strideHeight_;
     int strideWidth_;
+    int paddingHeight_;
+    int paddingWidth_;
 
 };
 

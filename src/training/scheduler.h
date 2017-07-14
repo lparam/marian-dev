@@ -1,6 +1,6 @@
 #pragma once
 
-#include "training/config.h"
+#include "common/config.h"
 #include "training/training_state.h"
 #include "training/validator.h"
 
@@ -60,6 +60,7 @@ public:
     LOG(info)->info("Starting epoch {}", epochs);
   }
 
+  void started() { LOG(info)->info("Training started"); }
   void finished() { LOG(info)->info("Training finshed"); }
 
   void addValidator(Ptr<Validator<DataSet>> validator) {

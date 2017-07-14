@@ -22,29 +22,17 @@ public:
 };
 
 
-template<typename T>
-std::vector<T> Convert2NCHW(const std::vector<T>& indices,
-                            const Shape& shape) {
-  std::vector<T> nchwIndices;
-  int batchDim = shape[0];
-  int sentenceDim = shape[2];
-
-  for (int b = 0; b < batchDim; ++b) {
-    for (int t = 0; t < sentenceDim; ++t) {
-      nchwIndices.push_back(indices[(t * batchDim) + b]);
-    }
-  }
-  return nchwIndices;
-}
-
-
 class PoolingEncoder : public EncoderBase {
 public:
-  Expr getContext(Ptr<ExpressionGraph> graph,
-                  Expr embeddings, Expr mask) {
-    using namespace keywords;
+  Expr getContext(Expr x, Expr mask) {
+    int height = 3;
+    int width = 1;
+    int paddingHeight = height / 2;
+    int paddingWidth = 0;
 
-    return embeddings * mask;
+    return Pooling("Pooling", "avg_pooling",
+        height, width,
+        paddingHeight, paddingWidth)(x, mask);
   }
 
   Expr buildEmbeddings(Ptr<ExpressionGraph> graph,
@@ -110,9 +98,9 @@ public:
 
     std::vector<size_t> posIndeces;
 
-    for(size_t iPos = 0; iPos < batch->at(index)->batchWidth(); ++iPos) {
-      for(size_t i = 0; i < batch->at(index)->batchSize(); ++i) {
-        if(iPos < (size_t)posEmbeddings->shape()[0]) {
+    for (size_t iPos = 0; iPos < batch->at(index)->batchWidth(); ++iPos) {
+      for (size_t i = 0; i < batch->at(index)->batchSize(); ++i) {
+        if (iPos < (size_t)posEmbeddings->shape()[0]) {
           posIndeces.push_back(iPos);
         } else {
           posIndeces.push_back(posEmbeddings->shape()[0] - 1);
@@ -147,7 +135,6 @@ public:
     auto wordEmbeddings = buildEmbeddings(graph, encoderIndex);
     auto posEmbeddings = buildPositionalEmbeddings(graph, encoderIndex);
 
-    // select embeddings that occur in the batch
     Expr batchEmbeddings, batchMask;
     std::tie(batchEmbeddings, batchMask)
       = lookupWithPosition(wordEmbeddings, posEmbeddings, batch, encoderIndex);
@@ -160,7 +147,7 @@ public:
       batchEmbeddings = dropout(batchEmbeddings, keywords::mask = dropMask);
     }
 
-    Expr context = getContext(graph, batchEmbeddings, batchMask);
+    Expr context = getContext(batchEmbeddings, batchMask);
 
     return New<CNNEncoderState>(context, batchEmbeddings, batchMask, batch);
   }

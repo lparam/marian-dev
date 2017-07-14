@@ -66,6 +66,7 @@ Expr ConvolutionInTime(Ptr<ExpressionGraph> graph, Expr x,
     return tanh(concatenate(filters, axis=2), B, x);
 }
 
+
 class EncoderPooling : public EncoderBase {
 public:
   template <class... Args>

@@ -23,7 +23,7 @@ public:
   virtual Expr getAttended() { return context_; }
   virtual Expr getMask() { return mask_; }
 
-  virtual const std::vector<size_t>& getSourceWords() {
+  virtual const std::vector<Word>& getSourceWords() {
     return batch_->front()->indices();
   }
 };
@@ -65,7 +65,7 @@ public:
     singleStep_ = singleStep;
   }
 
-  virtual const std::vector<size_t>& getSourceWords() {
+  virtual const std::vector<Word>& getSourceWords() {
     return getEncoderState()->getSourceWords();
   }
 

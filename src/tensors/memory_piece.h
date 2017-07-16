@@ -2,25 +2,27 @@
 
 namespace marian {
 
+typedef uint8_t byte;
+
 class MemoryPiece {
   private:
-    uint8_t* data_;
+    byte* data_;
     size_t size_;
 
   public:
-    MemoryPiece(uint8_t* data, size_t size)
+    MemoryPiece(byte* data, size_t size)
       : data_(data), size_(size) {}
 
-    uint8_t* data() const { return data_; }
-    uint8_t* data() { return data_; }
+    byte* data() const { return data_; }
+    byte* data() { return data_; }
     size_t size() const { return size_; }
 
-    void set(uint8_t* data, size_t size) {
+    void set(byte* data, size_t size) {
       data_ = data;
       size_ = size;
     }
 
-    void setPtr(uint8_t* data) {
+    void setPtr(byte* data) {
       data_ = data;
     }
 

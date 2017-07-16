@@ -51,8 +51,10 @@ void xorshift(Tensor t);
 
 void glorot_normal(Tensor t);
 
-std::function<void(Tensor)> from_vector(const std::vector<float>& v);
-std::function<void(Tensor)> from_vector(const std::vector<size_t>& v);
+template <typename T>
+std::function<void(Tensor)> from_vector(const std::vector<T>& v) {
+  return [v](Tensor t) { t->set(v); };
+}
 
 std::function<void(Tensor)> from_sparse_vector(
     std::pair<std::vector<size_t>, std::vector<float>>& v);

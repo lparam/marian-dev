@@ -12,21 +12,38 @@ int main(int argc, char** argv) {
 
   //marian::Config config(argc, argv);
 
+  //auto graph = New<ExpressionGraph>();
+  //graph->setDevice(0);
+  //
+  //auto emb = graph->param("emb", {5, 5, 2}, keywords::init=inits::from_value(1));
+  //auto input = 2 * emb;
+  //
+  //auto ce = sum(reshape(input, {5*2, 5}), keywords::axis=1);
+  //
+  //
+  //debug(ce, "cost");
+  //debug(input, "input");
+  //debug(emb, "emb");
+  //
+  //graph->forward();
+  //graph->backward();
+
+
+
   auto graph = New<ExpressionGraph>();
   graph->setDevice(0);
 
-  auto emb = graph->param("emb", {5, 5, 2}, keywords::init=inits::from_value(1));
-  auto input = 2 * emb;
+  std::vector<size_t> test = {1, 2, 3, 4, 5};
 
-  auto ce = sum(reshape(input, {5*2, 5}), keywords::axis=1);
+  auto emb = graph->param("emb", {1, 5}, keywords::init=inits::from_vector(test));
 
-
-  debug(ce, "cost");
-  debug(input, "input");
   debug(emb, "emb");
 
   graph->forward();
-  graph->backward();
+
+  std::cerr << emb->val()->debug<size_t>() << std::endl;
+
+
 
   return 0;
 }

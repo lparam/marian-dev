@@ -109,15 +109,6 @@ void ortho(Tensor t) {
   t->set(vec);
 }
 
-std::function<void(Tensor)> from_vector(const std::vector<float>& v) {
-  return [v](Tensor t) { t->set(v); };
-}
-
-std::function<void(Tensor)> from_vector(const std::vector<size_t>& v) {
-  std::vector<float> vf(v.begin(), v.end());
-  return from_vector(vf);
-}
-
 std::function<void(Tensor)> from_sparse_vector(
     std::pair<std::vector<size_t>, std::vector<float>>& v) {
   return [v](Tensor t) {

@@ -1044,7 +1044,7 @@ __global__ void gCrossEntropyPick(float* out,
                                   const ShapeGPU outShape,
                                   const float* in,
                                   const ShapeGPU inShape,
-                                  const float* pick) {
+                                  const size_t* pick) {
   int rows = inShape[0];
   int cols = inShape[1];
   for(int bid = 0; bid < rows; bid += gridDim.x) {
@@ -1101,7 +1101,7 @@ __global__ void gCrossEntropyPick(float* out,
       // cross-entropy
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
-        if(id == (int)pick[j]) {
+        if(id == pick[j]) {
           out[j] = __logf(_sum[0]) - sp[id] + max;
         }
       }
@@ -1119,15 +1119,17 @@ void CrossEntropyPick(Tensor out, Tensor in, Tensor pick) {
   int threads = std::min(MAX_THREADS, (int)k);
   int shared = sizeof(float) * threads * 2;
 
+  std::cerr << pick->debug<size_t>() << std::endl;
+
   gCrossEntropyPick<<<blocks, threads, shared>>>(
-      out->data(), out->shape(), in->data(), in->shape(), pick->data());
+      out->data(), out->shape(), in->data(), in->shape(), pick->data<size_t>());
 }
 
 __global__ void gCrossEntropyPickBackward(float* out,
                                           const ShapeGPU outShape,
                                           const float* adj,
                                           const float* in,
-                                          const float* pick) {
+                                          const size_t* pick) {
   int rows = outShape[0];
   int cols = outShape[1];
   for(int bid = 0; bid < rows; bid += gridDim.x) {
@@ -1187,7 +1189,7 @@ __global__ void gCrossEntropyPickBackward(float* out,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          float sub = (float)(id == (int)pick[j]);
+          float sub = (float)(id == pick[j]);
           so[id] += adj[j] * (__expf(sp[id] - max) / _sum[0] - sub);
         }
       }
@@ -1206,7 +1208,7 @@ void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor pick) {
   int shared = sizeof(float) * threads * 2;
 
   gCrossEntropyPickBackward<<<blocks, threads, shared>>>(
-      out->data(), out->shape(), adj->data(), a->data(), pick->data());
+      out->data(), out->shape(), adj->data(), a->data(), pick->data<size_t>());
 }
 
 float L2Norm(Tensor in) {

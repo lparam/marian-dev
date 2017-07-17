@@ -6,6 +6,8 @@
 #include "models/amun.h"
 #include "models/hardatt.h"
 #include "models/multi_s2s.h"
+#include "experimental/convolution/conv_nmt.h"
+#include "models/experimental/pooling.h"
 
 namespace marian {
 
@@ -218,6 +220,11 @@ Ptr<Scorer> scorerByType(std::string fname,
     return New<ScorerWrapper<MultiS2S>>(fname, weight, model, options);
   } else if(type == "multi-hard-att") {
     return New<ScorerWrapper<MultiHardSoftAtt>>(fname, weight, model, options);
+  } else if(type == "Pooling") {
+    std::cerr << "Call PoolingModel" << std::endl;
+    return New<ScorerWrapper<PoolingModel>>(fname, weight, model, options);
+  } else if(type == "convolution") {
+    return New<ScorerWrapper<ConvNMT>>(fname, weight, model, options);
   } else {
     UTIL_THROW2("Unknown decoder type: " + type);
   }

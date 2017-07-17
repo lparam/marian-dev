@@ -125,27 +125,29 @@ public:
     auto x = w + p;
 
     int k = 3;
-    int layersC = 6;
-    int layersA = 3;
 
-    auto Wup = graph->param("W_c_up", {dimSrcEmb, 2 * dimSrcEmb}, init=inits::glorot_uniform);
-    auto Bup = graph->param("b_c_up", {1, 2 * dimSrcEmb}, init=inits::zeros);
+    //int layersC = 6;
+    //int layersA = 3;
+    //auto Wup = graph->param("W_c_up", {dimSrcEmb, 2 * dimSrcEmb}, init=inits::glorot_uniform);
+    //auto Bup = graph->param("b_c_up", {1, 2 * dimSrcEmb}, init=inits::zeros);
+    //
+    //auto Wdown = graph->param("W_c_down", {2 * dimSrcEmb, dimSrcEmb}, init=inits::glorot_uniform);
+    //auto Bdown = graph->param("b_c_down", {1, dimSrcEmb}, init=inits::zeros);
+    //
+    //auto cnnC = affine(x, Wup, Bup);
+    //for (int i = 0; i < layersC; ++i) {
+    //   cnnC = ConvolutionInTime(graph, cnnC, k, "cnn-c." + std::to_string(i));
+    //}
+    //cnnC = affine(cnnC, Wdown, Bdown);
+    //
+    //auto cnnA = x;
+    //for(int i = 0; i < layersA; ++i) {
+    //   cnnA = ConvolutionInTime(graph, cnnA, k, "cnn-a." + std::to_string(i));
+    //}
+    //return New<EncoderStatePooling>(cnnC, cnnA + x, xMask, batch);
 
-    auto Wdown = graph->param("W_c_down", {2 * dimSrcEmb, dimSrcEmb}, init=inits::glorot_uniform);
-    auto Bdown = graph->param("b_c_down", {1, dimSrcEmb}, init=inits::zeros);
-
-    auto cnnC = affine(x, Wup, Bup);
-    for (int i = 0; i < layersC; ++i) {
-       cnnC = ConvolutionInTime(graph, cnnC, k, "cnn-c." + std::to_string(i));
-    }
-    cnnC = affine(cnnC, Wdown, Bdown);
-
-    auto cnnA = x;
-    for(int i = 0; i < layersA; ++i) {
-       cnnA = ConvolutionInTime(graph, cnnA, k, "cnn-a." + std::to_string(i));
-    }
-
-    return New<EncoderStatePooling>(cnnC, cnnA + x, xMask, batch);
+    auto mean = MeanInTime(graph, x, k);
+    return New<EncoderStatePooling>(mean, mean, xMask, batch);
   }
 };
 

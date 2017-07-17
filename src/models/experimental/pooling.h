@@ -108,7 +108,7 @@ public:
     int dimBatch = w->shape()[0];
     int dimSrcWords = w->shape()[2];
 
-    int dimMaxLength = options_->get<size_t>("max-length") + 1;
+    int dimMaxLength = 50;
     auto posFactory = embedding(graph)
                       ("prefix", prefix_ + "_Pemb")
                       ("dimVocab", dimMaxLength)
@@ -119,7 +119,7 @@ public:
     std::vector<size_t> pIndices;
     for(int i = 0; i < dimSrcWords; ++i)
       for(int j = 0; j < dimBatch; j++)
-        pIndices.push_back(i);
+        pIndices.push_back(i >= dimMaxLength ? 0 : i);
 
     auto p = reshape(rows(pEmb, pIndices), {dimBatch, dimSrcEmb, dimSrcWords});
     auto x = w + p;

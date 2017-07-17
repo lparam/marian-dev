@@ -109,39 +109,43 @@ public:
     auto pEmb = embedding(graph)
                 ("prefix", prefix_ + "_Pemb")
                 ("dimVocab", dimMaxLength)
-                ("vimEmb", dimEmb)
+                ("dimEmb", dimEmb)
                 .construct();
 
     std::vector<size_t> pIndices;
-    for (int i = 0; i < dimSrcWords; ++i)
-      for (int j = 0; j < dimBatch; ++j)
+    for (int i = 0; i < dimSrcWords; ++i) {
+      for (int j = 0; j < dimBatch; ++j) {
         pIndices.push_back(i);
+      }
+    }
 
     auto p = reshape(rows(pEmb, pIndices), {dimBatch, dimEmb, dimSrcWords});
     auto x = w + p;
 
-    int k = 3;
-    int layersC = 6;
-    int layersA = 3;
+    // int k = 3;
+    // int layersC = 6;
+    // int layersA = 3;
 
-    auto Wup = graph->param("W_c_up", {dimEmb, 2 * dimEmb}, init=inits::glorot_uniform);
-    auto Bup = graph->param("b_c_up", {1, 2 * dimEmb}, init=inits::zeros);
+    // auto Wup = graph->param("W_c_up", {dimEmb, 2 * dimEmb}, init=inits::glorot_uniform);
+    // auto Bup = graph->param("b_c_up", {1, 2 * dimEmb}, init=inits::zeros);
 
-    auto Wdown = graph->param("W_c_down", {2 * dimEmb, dimEmb}, init=inits::glorot_uniform);
-    auto Bdown = graph->param("b_c_down", {1, dimEmb}, init=inits::zeros);
+    // auto Wdown = graph->param("W_c_down", {2 * dimEmb, dimEmb}, init=inits::glorot_uniform);
+    // auto Bdown = graph->param("b_c_down", {1, dimEmb}, init=inits::zeros);
 
-    auto cnnC = affine(x, Wup, Bup);
-    for (int i = 0; i < layersC; ++i) {
-      cnnC = ConvolutionInTime(graph, cnnC, k, "cnn-c." + std::to_string(i));
-    }
-    cnnC = affine(cnnC, Wdown, Bdown);
+    // auto cnnC = affine(x, Wup, Bup);
+    // for (int i = 0; i < layersC; ++i) {
+      // cnnC = ConvolutionInTime(graph, cnnC, k, "cnn-c." + std::to_string(i));
+    // }
+    // cnnC = affine(cnnC, Wdown, Bdown);
 
-    auto cnnA = x;
-    for (int i = 0; i < layersA; ++i) {
-      cnnA = ConvolutionInTime(graph, cnnA, k, "cnn-a." + std::to_string(i));
-    }
+    // auto cnnA = x;
+    // for (int i = 0; i < layersA; ++i) {
+      // cnnA = ConvolutionInTime(graph, cnnA, k, "cnn-a." + std::to_string(i));
+    // }
+    auto c = MeanInTime(graph, x, 5);
 
-    return New<EncoderStatePooling>(cnnC, cnnA + x, xMask, batch);
+    return New<EncoderStatePooling>(c, x, xMask, batch);
+    // return New<EncoderStatePooling>(cnnC, cnnA + x, xMask, batch);
   }
 };
 

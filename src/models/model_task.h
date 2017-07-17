@@ -4,6 +4,7 @@
 #include "models/amun.h"
 #include "models/hardatt.h"
 #include "models/multi_s2s.h"
+#include "models/experimental/pooling.h"
 
 namespace marian {
 
@@ -25,6 +26,7 @@ Ptr<ModelTask> WrapModelType(Ptr<Config> options) {
   REGISTER_MODEL("amun", Amun);
   REGISTER_MODEL("hard-att", HardAtt);
   REGISTER_MODEL("hard-soft-att", HardSoftAtt);
+  REGISTER_MODEL("pooling", Pooling);
 
   REGISTER_MODEL("multi-s2s", MultiS2S);
   REGISTER_MODEL("multi-hard-att", MultiHardSoftAtt);

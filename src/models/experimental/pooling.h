@@ -21,7 +21,7 @@ public:
   virtual Expr getMask() { return mask_; }
 
   virtual const std::vector<size_t>& getSourceWords() {
-    return batch_->front()->indeces();
+    return batch_->front()->indices();
   }
 };
 
@@ -84,16 +84,37 @@ public:
     int dimSrcVoc = options_->get<std::vector<int>>("dim-vocabs")[batchIdx];
     int dimSrcEmb = options_->get<int>("dim-emb");
 
-    auto xEmb = Embedding(prefix_ + "_Wemb", dimSrcVoc, dimSrcEmb)(graph);
+    auto embFactory = embedding(graph)
+                      ("prefix", prefix_ + "_Wemb")
+                      ("dimVocab", dimSrcVoc)
+                      ("dimEmb", dimSrcEmb);
+
+    if(options_->has("embedding-fix-src"))
+      embFactory
+        ("fixed", opt<bool>("embedding-fix-src"));
+
+    if(options_->has("embedding-vectors")) {
+      auto embFiles = opt<std::vector<std::string>>("embedding-vectors");
+      embFactory
+        ("embFile", embFiles[batchIdx])
+        ("normalization", opt<bool>("embedding-normalization"));
+    }
+
+    auto xEmb = embFactory.construct();
 
     Expr w, xMask;
-    std::tie(w, xMask) = prepareSource(xEmb, batch, batchIdx);
+    std::tie(w, xMask) = EncoderBase::lookup(xEmb, batch, batchIdx);
 
     int dimBatch = w->shape()[0];
     int dimSrcWords = w->shape()[2];
 
     int dimMaxLength = options_->get<size_t>("max-length") + 1;
-    auto pEmb = Embedding(prefix_ + "_Pemb", dimMaxLength, dimSrcEmb)(graph);
+    auto posFactory = embedding(graph)
+                      ("prefix", prefix_ + "_Pemb")
+                      ("dimVocab", dimMaxLength)
+                      ("dimEmb", dimSrcEmb);
+
+    auto pEmb = posFactory.construct();
 
     std::vector<size_t> pIndices;
     for(int i = 0; i < dimSrcWords; ++i)
@@ -114,13 +135,15 @@ public:
     auto Bdown = graph->param("b_c_down", {1, dimSrcEmb}, init=inits::zeros);
 
     auto cnnC = affine(x, Wup, Bup);
-    for(int i = 0; i < layersC; ++i)
+    for (int i = 0; i < layersC; ++i) {
        cnnC = ConvolutionInTime(graph, cnnC, k, "cnn-c." + std::to_string(i));
+    }
     cnnC = affine(cnnC, Wdown, Bdown);
 
     auto cnnA = x;
-    for(int i = 0; i < layersA; ++i)
+    for(int i = 0; i < layersA; ++i) {
        cnnA = ConvolutionInTime(graph, cnnA, k, "cnn-a." + std::to_string(i));
+    }
 
     return New<EncoderStatePooling>(cnnC, cnnA + x, xMask, batch);
   }

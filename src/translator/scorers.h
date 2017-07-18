@@ -221,7 +221,7 @@ Ptr<Scorer> scorerByType(std::string fname,
   } else if(type == "multi-hard-att") {
     return New<ScorerWrapper<MultiHardSoftAtt>>(fname, weight, model, options);
   } else if(type == "pooling") {
-    return New<ScorerWrapper<Pooling>>(fname, weight, model, options);
+    return New<ScorerWrapper<PoolingModel>>(fname, weight, model, options);
   } else if(type == "convolution") {
     return New<ScorerWrapper<ConvNMT>>(fname, weight, model, options);
   } else {

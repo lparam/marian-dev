@@ -106,7 +106,7 @@ class Convolution {
 class Pooling {
 public:
   Pooling(
-      const std::string& name,
+      const std::string name,
       const std::string type,
       int height = 1,
       int width = 1,

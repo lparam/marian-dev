@@ -734,8 +734,10 @@ class PoolingOp : public UnaryNodeOp {
           break;
       };
 
-      height = std::min(height, x->shape()[2]);
-      strideHeight = std::min(strideHeight, x->shape()[2]);
+      if (height < x->shape()[2]) {
+        height = std::min(height, x->shape()[2]);
+        strideHeight = std::min(strideHeight, x->shape()[2]);
+      }
 
       CUDNN_CALL( cudnnCreatePoolingDescriptor(&poolingDesc_) );
       CUDNN_CALL( cudnnSetPooling2dDescriptor(poolingDesc_,

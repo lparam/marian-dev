@@ -157,9 +157,8 @@ public:
       int batchDim = x->shape()[0];
       int sentenceDim = x->shape()[2];
 
-      auto pooled = reshape(x, {batchDim * sentenceDim, x->shape()[1], 1, x->shape()[3]});
+      auto pooled = reshape(x, {batchDim * sentenceDim, x->shape()[3], 1, x->shape()[1]});
 
-      newIndeces.clear();
       for (int t = 0; t < sentenceDim; ++t) {
         for (int b = 0; b < batchDim; ++b) {
           newIndeces.push_back(b * sentenceDim + t);
@@ -178,12 +177,15 @@ public:
 
       Expr output;
       if (type_ == "max_pooling") {
-        output = max_pooling(xNCHW, height_, width_, 0, 0,
+        output = max_pooling(xNCHW, height_, width_,
+                             paddingHeight_, paddingWidth_,
                              strideHeight_, strideWidth_);
       } else if (type_ == "avg_pooling") {
-        output = avg_pooling(xNCHW, height_, width_, 0, 0,
+        output = avg_pooling(xNCHW, height_, width_,
+                             paddingHeight_, paddingWidth_,
                              strideHeight_, strideWidth_);
       }
+      // debug(output, "output");
 
       return convert2Marian(output, x) * mask;
     }

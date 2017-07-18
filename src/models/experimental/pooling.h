@@ -23,7 +23,7 @@ public:
 };
 
 Expr MeanInTime(Expr x, Expr mask, int k) {
-    return tanh(Pooling("Pooling", "avg_pooling", k, 1, 1, 0)(x, mask) + x);
+    return tanh(Pooling("Pooling", "avg_pooling", k, 1, k/2, 0)(x, mask) + x);
 }
 
 Expr ConvolutionInTime(Ptr<ExpressionGraph> graph, Expr x,
@@ -106,7 +106,7 @@ public:
     auto p = reshape(rows(pEmb, pIndices), {dimBatch, dimEmb, dimSrcWords});
     auto x = w + p;
 
-    // int k = 3;
+    int k = 5;
     // int layersC = 6;
     // int layersA = 3;
 
@@ -126,7 +126,7 @@ public:
     // for (int i = 0; i < layersA; ++i) {
       // cnnA = ConvolutionInTime(graph, cnnA, k, "cnn-a." + std::to_string(i));
     // }
-    auto c = MeanInTime(x, xMask, 5);
+    auto c = MeanInTime(x, xMask, k);
 
     return New<EncoderStatePooling>(c, x, xMask, batch);
     // return New<EncoderStatePooling>(cnnC, cnnA + x, xMask, batch);

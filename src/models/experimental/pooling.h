@@ -2,6 +2,7 @@
 
 #include "models/encdec.h"
 #include "models/s2s.h"
+#include "layers/convolution.h"
 
 namespace marian {
 
@@ -21,24 +22,8 @@ public:
   virtual Expr getAttended() { return attended_; }
 };
 
-Expr MeanInTime(Ptr<ExpressionGraph> graph, Expr x, int k) {
-    using namespace keywords;
-    int dimBatch = x->shape()[0];
-    int dimInput = x->shape()[1];
-    int dimSrcWords = x->shape()[2];
-
-    auto padding = graph->zeros(shape={dimBatch, dimInput, k / 2});
-    auto xpad = concatenate({padding, x, padding}, axis=2);
-
-    std::vector<Expr> means;
-    for(int i = 0; i < dimSrcWords; ++i) {
-      std::vector<Expr> preAvg;
-      for(int j = 0; j < k; ++j)
-        preAvg.push_back(step(xpad, i + j));
-
-      means.push_back(mean(concatenate(preAvg, axis=2), axis=2));
-    }
-    return tanh(concatenate(means, axis=2) + x);
+Expr MeanInTime(Expr x, Expr mask, int k) {
+    return tanh(Pooling("Pooling", "avg_pooling", k, 1, 1, 0)(x, mask) + x);
 }
 
 Expr ConvolutionInTime(Ptr<ExpressionGraph> graph, Expr x,
@@ -100,24 +85,23 @@ public:
     auto xEmb = embFactory.construct();
 
     Expr w, xMask;
-    std::tie(w, xMask) = lookup(xEmb, batch, batchIdx);
+    std::tie(w, xMask) = EncoderBase::lookup(xEmb, batch, batchIdx);
 
     int dimBatch = w->shape()[0];
     int dimSrcWords = w->shape()[2];
 
-    int dimMaxLength = options_->get<size_t>("max-length") + 1;
-    auto pEmb = embedding(graph)
-                ("prefix", prefix_ + "_Pemb")
-                ("dimVocab", dimMaxLength)
-                ("dimEmb", dimEmb)
-                .construct();
+    int dimMaxLength = 50;
+    auto posFactory = embedding(graph)
+                      ("prefix", prefix_ + "_Pemb")
+                      ("dimVocab", dimMaxLength)
+                      ("dimEmb", dimEmb);
+
+    auto pEmb = posFactory.construct();
 
     std::vector<size_t> pIndices;
-    for (int i = 0; i < dimSrcWords; ++i) {
-      for (int j = 0; j < dimBatch; ++j) {
-        pIndices.push_back(i);
-      }
-    }
+    for(int i = 0; i < dimSrcWords; ++i)
+      for(int j = 0; j < dimBatch; j++)
+        pIndices.push_back(i >= dimMaxLength ? 0 : i);
 
     auto p = reshape(rows(pEmb, pIndices), {dimBatch, dimEmb, dimSrcWords});
     auto x = w + p;
@@ -142,7 +126,7 @@ public:
     // for (int i = 0; i < layersA; ++i) {
       // cnnA = ConvolutionInTime(graph, cnnA, k, "cnn-a." + std::to_string(i));
     // }
-    auto c = MeanInTime(graph, x, 5);
+    auto c = MeanInTime(x, xMask, 5);
 
     return New<EncoderStatePooling>(c, x, xMask, batch);
     // return New<EncoderStatePooling>(cnnC, cnnA + x, xMask, batch);

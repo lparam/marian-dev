@@ -28,7 +28,7 @@ Ptr<ModelTask> WrapModelType(Ptr<Config> options) {
   REGISTER_MODEL("hard-att", HardAtt);
   REGISTER_MODEL("hard-soft-att", HardSoftAtt);
   REGISTER_MODEL("convolution", ConvNMT);
-  REGISTER_MODEL("Pooling", PoolingModel);
+  REGISTER_MODEL("pooling", Pooling);
 
   REGISTER_MODEL("multi-s2s", MultiS2S);
   REGISTER_MODEL("multi-hard-att", MultiHardSoftAtt);

@@ -104,32 +104,32 @@ public:
         pIndices.push_back(i >= dimMaxLength ? 0 : i);
 
     auto p = reshape(rows(pEmb, pIndices), {dimBatch, dimEmb, dimSrcWords});
-    auto x = w + p;
+    auto x = (w + p) * xMask;
 
-    int k = 5;
-    // int layersC = 6;
-    // int layersA = 3;
+    int k = 3;
+    // auto c = MeanInTime(x, xMask, k);
+    // return New<EncoderStatePooling>(c, x, xMask, batch);
 
-    // auto Wup = graph->param("W_c_up", {dimEmb, 2 * dimEmb}, init=inits::glorot_uniform);
-    // auto Bup = graph->param("b_c_up", {1, 2 * dimEmb}, init=inits::zeros);
+    int layersC = 6;
+    int layersA = 3;
 
-    // auto Wdown = graph->param("W_c_down", {2 * dimEmb, dimEmb}, init=inits::glorot_uniform);
-    // auto Bdown = graph->param("b_c_down", {1, dimEmb}, init=inits::zeros);
+    auto Wup = graph->param("W_c_up", {dimEmb, 2 * dimEmb}, init=inits::glorot_uniform);
+    auto Bup = graph->param("b_c_up", {1, 2 * dimEmb}, init=inits::zeros);
 
-    // auto cnnC = affine(x, Wup, Bup);
-    // for (int i = 0; i < layersC; ++i) {
-      // cnnC = ConvolutionInTime(graph, cnnC, k, "cnn-c." + std::to_string(i));
-    // }
-    // cnnC = affine(cnnC, Wdown, Bdown);
+    auto Wdown = graph->param("W_c_down", {2 * dimEmb, dimEmb}, init=inits::glorot_uniform);
+    auto Bdown = graph->param("b_c_down", {1, dimEmb}, init=inits::zeros);
 
-    // auto cnnA = x;
-    // for (int i = 0; i < layersA; ++i) {
-      // cnnA = ConvolutionInTime(graph, cnnA, k, "cnn-a." + std::to_string(i));
-    // }
-    auto c = MeanInTime(x, xMask, k);
+    auto cnnC = affine(x, Wup, Bup);
+    for (int i = 0; i < layersC; ++i) {
+      cnnC = ConvolutionInTime(graph, cnnC, k, "cnn-c." + std::to_string(i)) * xMask;
+    }
+    cnnC = affine(cnnC, Wdown, Bdown) * xMask;
 
-    return New<EncoderStatePooling>(c, x, xMask, batch);
-    // return New<EncoderStatePooling>(cnnC, cnnA + x, xMask, batch);
+    auto cnnA = x;
+    for (int i = 0; i < layersA; ++i) {
+      cnnA = ConvolutionInTime(graph, cnnA, k, "cnn-a." + std::to_string(i)) * xMask;
+    }
+    return New<EncoderStatePooling>(cnnC, cnnA + x, xMask, batch);
   }
 };
 

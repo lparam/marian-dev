@@ -569,6 +569,12 @@ private:
       thread_local Tensor accGradients;
       thread_local Ptr<TensorAllocator> accAlloc;
 
+      thread_local float avgBatchSize = batch->words();
+
+      float decay = 0.999;
+      avgBatchSize = decay * avgBatchSize + (1.f - decay) * batch->words();
+      average_batch_words = avgBatchSize;
+
       // gradient drop purpose
       thread_local GradientDrop dropper;
 

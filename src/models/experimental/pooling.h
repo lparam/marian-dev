@@ -23,34 +23,12 @@ public:
 };
 
 Expr MeanInTime(Expr x, Expr mask, int k) {
-    return tanh(Pooling("Pooling", "avg_pooling", k, 1, k/2, 0)(x, mask) + x);
+  return tanh(Pooling("Pooling", "avg_pooling", k, 1, k/2, 0)(x, mask) + x);
 }
 
-Expr ConvolutionInTime(Ptr<ExpressionGraph> graph, Expr x,
-                       int k, std::string name) {
-    using namespace keywords;
-    int dimBatch = x->shape()[0];
-    int dimInput = x->shape()[1];
-    int dimSrcWords = x->shape()[2];
-
-    auto padding = graph->zeros(shape={dimBatch, dimInput, k / 2});
-    auto xpad = concatenate({padding, x, padding}, axis=2);
-
-    float scale = 1.f / sqrtf(k * dimInput);
-    auto K = graph->param(name, {1, dimInput, k}, keywords::init=inits::uniform(scale));
-    auto B = graph->param(name + "_b", {1, dimInput}, init=inits::zeros);
-
-    std::vector<Expr> filters;
-    for(int i = 0; i < dimSrcWords; ++i) {
-      std::vector<Expr> preAvg;
-      for(int j = 0; j < k; ++j)
-        preAvg.push_back(step(xpad, i + j));
-
-      filters.push_back(sum(concatenate(preAvg, axis=2) * K, axis=2));
-    }
-    return tanh(concatenate(filters, axis=2), B, x);
+Expr ConvolutionInTime(std::string name, Expr x, Expr mask, int k) {
+  return tanh(Convolution(name, k, 1, 1, k/2, 0)(x, mask) + x);
 }
-
 
 class EncoderPooling : public EncoderBase {
 public:
@@ -112,7 +90,6 @@ public:
 
     int layersC = 6;
     int layersA = 3;
-
     auto Wup = graph->param("W_c_up", {dimEmb, 2 * dimEmb}, init=inits::glorot_uniform);
     auto Bup = graph->param("b_c_up", {1, 2 * dimEmb}, init=inits::zeros);
 
@@ -121,13 +98,13 @@ public:
 
     auto cnnC = affine(x, Wup, Bup);
     for (int i = 0; i < layersC; ++i) {
-      cnnC = ConvolutionInTime(graph, cnnC, k, "cnn-c." + std::to_string(i)) * xMask;
+      cnnC = ConvolutionInTime("cnn-c." + std::to_string(i), cnnC, xMask, k);
     }
     cnnC = affine(cnnC, Wdown, Bdown) * xMask;
 
     auto cnnA = x;
     for (int i = 0; i < layersA; ++i) {
-      cnnA = ConvolutionInTime(graph, cnnA, k, "cnn-a." + std::to_string(i)) * xMask;
+      cnnA = ConvolutionInTime("cnn-a." + std::to_string(i), cnnA, xMask, k);
     }
     return New<EncoderStatePooling>(cnnC, cnnA + x, xMask, batch);
   }

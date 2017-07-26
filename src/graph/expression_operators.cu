@@ -206,9 +206,14 @@ Expr lexical_bias(Expr logits, Expr att, float eps, Ptr<sparse::CSR> lf) {
 
 #ifdef CUDNN
 
-Expr convolution(Expr x, Expr filters, Expr bias) {
+Expr convolution(Expr x,
+  Expr filters, Expr bias,
+  int padHeight, int padWidth,
+  int strideHeight, int strideWidth)
+{
   std::vector<Expr> nodes = {x, filters, bias};
-  return Expression<ConvolutionOp>(nodes);
+  return Expression<ConvolutionOp>(nodes,
+      padHeight, padWidth, strideHeight, strideWidth);
 }
 
 Expr avg_pooling(

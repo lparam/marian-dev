@@ -1226,7 +1226,6 @@ __global__ void gAtt(float* out,
                      const float* va,
                      const float* ctx,
                      const float* state,
-                     const float* cov,
                      int m,  // total rows (batch x time x beam)
                      int k,  // depth
                      int b,  // batch size
@@ -1240,7 +1239,6 @@ __global__ void gAtt(float* out,
       const float* vaRow = va;
       const float* ctxRow = ctx + (j % (b * t)) * cols;
       const float* stateRow = state + (j / (b * t) + j % b) * cols;
-      const float* covRow = cov ? cov + (j % (b * t)) * cols : nullptr;
 
       extern __shared__ float _share[];
       float* _sum = _share + blockDim.x;
@@ -1250,8 +1248,6 @@ __global__ void gAtt(float* out,
         int id = tid + threadIdx.x;
         if(id < cols) {
           float z = ctxRow[id] + stateRow[id];
-          if(cov)
-            z += covRow[id];
           float ex = tanhf(z) * vaRow[id];
           _sum[threadIdx.x] += ex;
         }
@@ -1271,7 +1267,7 @@ __global__ void gAtt(float* out,
   }
 }
 
-void Att(Tensor out, Tensor va, Tensor context, Tensor state, Tensor coverage) {
+void Att(Tensor out, Tensor va, Tensor context, Tensor state) {
   cudaSetDevice(out->getDevice());
 
   size_t m = out->shape()[0] * out->shape()[2] * out->shape()[3];
@@ -1288,7 +1284,6 @@ void Att(Tensor out, Tensor va, Tensor context, Tensor state, Tensor coverage) {
                                     va->data(),
                                     context->data(),
                                     state->data(),
-                                    coverage ? coverage->data() : nullptr,
                                     m,
                                     k,
                                     b,
@@ -1298,11 +1293,9 @@ void Att(Tensor out, Tensor va, Tensor context, Tensor state, Tensor coverage) {
 __global__ void gAttBack(float* gVa,
                          float* gContext,
                          float* gState,
-                         float* gCoverage,
                          const float* va,
                          const float* context,
                          const float* state,
-                         const float* coverage,
                          const float* adj,
                          int m,  // rows
                          int k,  // cols
@@ -1315,26 +1308,20 @@ __global__ void gAttBack(float* gVa,
     if(j < rows) {
       float* gcRow = gContext + j * cols;
       float* gsRow = gState + (j % n) * cols;
-      float* gcovRow = gCoverage ? gCoverage + j * cols : nullptr;
 
       const float* cRow = context + j * cols;
       const float* sRow = state + (j % n) * cols;
-      const float* covRow = coverage ? coverage + j * cols : nullptr;
 
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
           float z = cRow[id] + sRow[id];
-          if(coverage)
-            z += covRow[id];
 
           float t = tanhf(z);
           float r = va[id] * (1.f - t * t);
 
           gcRow[id] += r * adj[j];
           gsRow[id] += r * adj[j];
-          if(gCoverage)
-            gcovRow[id] += r * adj[j];
           atomicAdd(gVa + id, t * adj[j]);
         }
       }
@@ -1345,11 +1332,9 @@ __global__ void gAttBack(float* gVa,
 void AttBack(Tensor gVa,
              Tensor gContext,
              Tensor gState,
-             Tensor gCoverage,
              Tensor va,
              Tensor context,
              Tensor state,
-             Tensor coverage,
              Tensor adj) {
   cudaSetDevice(adj->getDevice());
 
@@ -1364,13 +1349,9 @@ void AttBack(Tensor gVa,
   gAttBack<<<blocks, threads>>>(gVa->data(),
                                 gContext->data(),
                                 gState->data(),
-                                gCoverage ? gCoverage->data() : nullptr,
-
                                 va->data(),
                                 context->data(),
                                 state->data(),
-                                coverage ? coverage->data() : nullptr,
-
                                 adj->data(),
                                 m,
                                 k,

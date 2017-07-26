@@ -35,8 +35,7 @@ struct AttentionNodeOp : public NaryNodeOp {
     return {NodeOp(Att(val_,
                        child(0)->val(),
                        child(1)->val(),
-                       child(2)->val(),
-                       children_.size() == 4 ? child(3)->val() : nullptr))};
+                       child(2)->val()))};
   }
 
   NodeOps backwardOps() {
@@ -44,11 +43,9 @@ struct AttentionNodeOp : public NaryNodeOp {
       NodeOp(AttBack(child(0)->grad(),
                      child(1)->grad(),
                      child(2)->grad(),
-                     children_.size() == 4 ? child(3)->grad() : nullptr,
                      child(0)->val(),
                      child(1)->val(),
                      child(2)->val(),
-                     children_.size() == 4 ? child(3)->val() : nullptr,
                      adj_);)
     };
   }

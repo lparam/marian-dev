@@ -345,6 +345,9 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       "Scales the learning rate based on the number of words in a mini-batch")
     ("batch-normal-words", po::value<double>()->default_value(1920.0),
       "This can option is only active when batch-flexible-lr is on. It determines number of words per batch that the learning rate corresponds to.")
+    ("batch-normal-warmup-start", po::value<double>()->default_value(1920.0),
+      "Determines initially how many words we should target before doing an update.")
+    ("batch-warmup-time", po::value<size_t>()->default_value(1), "After how many batches do we reach default value. (Set to above 1 to enable warmup)")
     ("tau", po::value<size_t>()->default_value(1),
      "SGD update delay, 1 = no delay")
 
@@ -622,6 +625,8 @@ void ConfigParser::parseOptions(
     SET_OPTION("lr-decay-freq", size_t);
     SET_OPTION("batch-flexible-lr", bool);
     SET_OPTION("batch-normal-words", double);
+    SET_OPTION("batch-normal-warmup-start", double);
+    SET_OPTION("batch-warmup-time", size_t);
 
     SET_OPTION("clip-norm", double);
     SET_OPTION("moving-average", bool);

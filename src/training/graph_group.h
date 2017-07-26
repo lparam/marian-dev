@@ -25,13 +25,19 @@ protected:
   Ptr<OptimizerBase> opt_;
   bool scale_lr; // Whether to scale the learning rate
   float average_batch_words;
+  float batch_warmup_start;
+  size_t batch_warmup_time;
+  float batch_step_size;
 
 public:
   GraphGroup(Ptr<Config> options)
       : options_(options),
       opt_(Optimizer(options)),
       scale_lr(options->get<bool>("batch-flexible-lr")),
-      average_batch_words(options->get<float>("batch-normal-words")) {}
+      average_batch_words(options->get<float>("batch-normal-words")),
+      batch_warmup_start(options->get<float>("batch-normal-warmup-start")),
+      batch_warmup_time(options->get<size_t>("batch-warmup-time")),
+      batch_step_size((batch_warmup_start - average_batch_words)/batch_warmup_time){}
 
   virtual ~GraphGroup() {}
 
@@ -66,6 +72,7 @@ private:
   Ptr<ExpressionGraph> mvAvgGraph_;
   bool mvAvg_{false};
   float mvDecay_{0.9999};
+  size_t num_seen_batches = 1;
 
   void updateMovingAverage(Tensor mvAvgParams, Tensor params, size_t batches) {
     float decay = min(mvDecay_, (float)(batches + 1) / (float)(batches + 10));
@@ -85,7 +92,12 @@ private:
     //std::cout << "Batch size: " << batch->size() << " batch_words " << batch_words << std::endl;
 
     if (scale_lr) {
-      opt_->update(graph_, batch_words/average_batch_words);
+      if (batch_warmup_time > num_seen_batches) {
+        opt_->update(graph_, batch_words/average_batch_words);
+      } else {
+        opt_->update(graph_, batch_words/(average_batch_words + batch_step_size*num_seen_batches));
+        num_seen_batches++;
+      }  
     } else {
       opt_->update(graph_);
     }
@@ -293,7 +305,7 @@ private:
     }
   }
 
-  void pushGradients(Tensor newGrads, size_t batch_words) {
+  void pushGradients(Tensor newGrads, size_t batch_words, size_t num_seen_batches) {
     // add instead of copy?
     std::vector<std::thread> threads;
     int pos = 0;
@@ -315,7 +327,11 @@ private:
             }
 
             if (scale_lr) {
-              shardOpt_[idx]->update(params_[latestVersion][idx], grads_[idx], batch_words/average_batch_words);
+              if (batch_warmup_time > num_seen_batches) {
+                shardOpt_[idx]->update(params_[latestVersion][idx], grads_[idx], batch_words/average_batch_words);
+              } else {
+                shardOpt_[idx]->update(params_[latestVersion][idx], grads_[idx], batch_words/(average_batch_words + batch_step_size*num_seen_batches));
+              }
             } else {
               shardOpt_[idx]->update(params_[latestVersion][idx], grads_[idx]);
             }
@@ -396,10 +412,14 @@ private:
     }
   }
 
-  void sparsePush(SparseTensor newGrads, size_t batch_words) {
+  void sparsePush(SparseTensor newGrads, size_t batch_words, size_t num_seen_batches) {
     if(graphs_.size() < 2) {
       if (scale_lr) {
-        opt_->update(graphs_[0], batch_words/average_batch_words);
+        if (batch_warmup_time > num_seen_batches) {
+          opt_->update(graphs_[0], batch_words/average_batch_words);
+        } else {
+          opt_->update(graphs_[0], batch_words/(average_batch_words + batch_step_size*num_seen_batches));
+        }
       } else {
         opt_->update(graphs_[0]);
       }
@@ -431,7 +451,11 @@ private:
               int latestVersion = ++globalVersionNumber[idx] % history_size_;
               params_[latestVersion][idx]->copyFrom(params_[pastVersion][idx]);
               if (scale_lr) {
-                shardOpt_[idx]->update(params_[latestVersion][idx], grads_[idx], batch_words/average_batch_words);
+                if (batch_warmup_time > num_seen_batches) {
+                  shardOpt_[idx]->update(params_[latestVersion][idx], grads_[idx], batch_words/average_batch_words);
+                } else {
+                  shardOpt_[idx]->update(params_[latestVersion][idx], grads_[idx], batch_words/(average_batch_words + batch_step_size*num_seen_batches));
+                }
               } else {
                 shardOpt_[idx]->update(params_[latestVersion][idx], grads_[idx]);
               }
@@ -565,6 +589,7 @@ private:
       thread_local Ptr<Builder> builder;
       thread_local size_t t = 0;
       thread_local size_t num_seen_words = 0;
+      thread_local size_t num_seen_batches = 1;
 
       thread_local Tensor accGradients;
       thread_local Ptr<TensorAllocator> accAlloc;
@@ -635,9 +660,9 @@ private:
         if(drop_rate_) {
           dropper->dropGraph(
               gradients, localSparseGrads_[my_id], drop_rate_);
-          sparsePush(localSparseGrads_[my_id], num_seen_words);
+          sparsePush(localSparseGrads_[my_id], num_seen_words, num_seen_batches);
         } else {
-          pushGradients(gradients, num_seen_words);
+          pushGradients(gradients, num_seen_words, num_seen_batches);
         }
         num_seen_words = 0; //Reset the counter of seen words after gradient update
 
@@ -646,7 +671,7 @@ private:
         }
 
       }
-
+      num_seen_batches++;
       if(scheduler_) {
         boost::upgrade_lock<boost::shared_mutex> lock(schedulerMutex_);
         {

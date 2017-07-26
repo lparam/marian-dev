@@ -49,7 +49,7 @@ public:
     auto p = reshape(rows(pEmb, pIndices), {dimBatch, dimEmb, dimSrcWords});
     auto x = w + p;
 
-    int layers = 3;
+    int layers = opt<size_t>("enc-depth");
     Expr layerOut = x;
     for(int i = 0; i < layers; i++) {
 
@@ -58,6 +58,7 @@ public:
       opt->set("dropout", 0);
       opt->set("layer-normalization", false);
       opt->set("prefix", prefix_ + "_att" + std::to_string(i));
+      
       auto att = New<rnn::GlobalAttention>(graph, opt, layerOut, layerOut, batchMask);
 
       std::vector<Expr> attsteps;

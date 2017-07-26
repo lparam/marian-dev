@@ -20,7 +20,6 @@ private:
   Expr gammaContext_, betaContext_;
   Expr gammaState_, betaState_;
 
-  Ptr<EncoderState> encState_;
   Expr softmaxMask_;
   Expr mappedContext_;
   std::vector<Expr> contexts_;
@@ -28,24 +27,33 @@ private:
   bool layerNorm_;
   float dropout_;
 
+  Expr context_;
+  Expr attended_;
+  Expr mask_;
+
   Expr contextDropped_;
   Expr dropMaskContext_;
   Expr dropMaskState_;
 
 public:
+
   GlobalAttention(Ptr<ExpressionGraph> graph,
                   Ptr<Options> options,
-                  Ptr<EncoderState> encState)
+                  Expr context,
+                  Expr attended,
+                  Expr mask)
       : CellInput(options),
-        encState_(encState),
-        contextDropped_(encState->getContext()) {
+        context_(context),
+        attended_(attended),
+        mask_(mask),
+        contextDropped_(context_) {
 
     int dimDecState = options_->get<int>("dimState");
     dropout_ = options_->get<float>("dropout");
     layerNorm_ = options_->get<bool>("layer-normalization");
     std::string prefix = options_->get<std::string>("prefix");
 
-    int dimEncState = encState_->getContext()->shape()[1];
+    int dimEncState = context_->shape()[1];
 
     Wa_ = graph->param(prefix + "_W_comb_att",
                        {dimDecState, dimEncState},
@@ -82,26 +90,39 @@ public:
       mappedContext_ = affine(contextDropped_, Ua_, ba_);
     }
 
-    auto softmaxMask = encState_->getMask();
+    auto softmaxMask = mask_;
     if(softmaxMask) {
       Shape shape = {softmaxMask->shape()[2], softmaxMask->shape()[0]};
       softmaxMask_ = transpose(reshape(softmaxMask, shape));
     }
   }
 
+  GlobalAttention(Ptr<ExpressionGraph> graph,
+                  Ptr<Options> options,
+                  Ptr<EncoderState> encState)
+    : GlobalAttention(graph,
+                      options,
+                      encState->getContext(),
+                      encState->getAttended(),
+                      encState->getMask()) {}
+
+
   Expr apply(State state) {
+    return apply(state.output);
+  }
+
+  Expr apply(Expr input) {
     using namespace keywords;
-    auto recState = state.output;
 
     int dimBatch = contextDropped_->shape()[0];
     int srcWords = contextDropped_->shape()[2];
-    int dimBeam = recState->shape()[3];
+    int dimBeam = input->shape()[3];
 
 
     if(dropMaskState_)
-      recState = dropout(recState, keywords::mask = dropMaskState_);
+      input = dropout(input, keywords::mask = dropMaskState_);
 
-    auto mappedState = dot(recState, Wa_);
+    auto mappedState = dot(input, Wa_);
     if(layerNorm_)
       mappedState = layer_norm(mappedState, gammaState_);
 
@@ -112,7 +133,7 @@ public:
                      {dimBatch, 1, srcWords, dimBeam});
     // <- horrible
 
-    auto alignedSource = weighted_average(encState_->getAttended(), e, axis = 2);
+    auto alignedSource = weighted_average(attended_, e, axis = 2);
 
     contexts_.push_back(alignedSource);
     alignments_.push_back(e);
@@ -132,7 +153,7 @@ public:
     alignments_.clear();
   }
 
-  int dimOutput() { return encState_->getContext()->shape()[1]; }
+  int dimOutput() { return context_->shape()[1]; }
 };
 
 using Attention = GlobalAttention;

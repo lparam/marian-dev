@@ -5,6 +5,8 @@
 #include "models/hardatt.h"
 #include "models/multi_s2s.h"
 
+#include "models/experimental/t2t.h"
+
 namespace marian {
 
 struct ModelTask {
@@ -28,6 +30,8 @@ Ptr<ModelTask> WrapModelType(Ptr<Config> options) {
 
   REGISTER_MODEL("multi-s2s", MultiS2S);
   REGISTER_MODEL("multi-hard-att", MultiHardSoftAtt);
+
+  REGISTER_MODEL("t2t", PoolingT2T);
 
   UTIL_THROW2("Unknown model type: " << type);
 }

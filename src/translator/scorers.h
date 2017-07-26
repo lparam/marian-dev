@@ -6,6 +6,7 @@
 #include "models/amun.h"
 #include "models/hardatt.h"
 #include "models/multi_s2s.h"
+#include "models/experimental/t2t.h"
 
 namespace marian {
 
@@ -218,6 +219,8 @@ Ptr<Scorer> scorerByType(std::string fname,
     return New<ScorerWrapper<MultiS2S>>(fname, weight, model, options);
   } else if(type == "multi-hard-att") {
     return New<ScorerWrapper<MultiHardSoftAtt>>(fname, weight, model, options);
+  } else if(type == "t2t") {
+    return New<ScorerWrapper<PoolingT2T>>(fname, weight, model, options);
   } else {
     UTIL_THROW2("Unknown decoder type: " + type);
   }

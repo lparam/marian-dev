@@ -57,7 +57,7 @@ public:
       opt->set("dimState", dimEmb);
       opt->set("dropout", 0);
       opt->set("layer-normalization", false);
-      opt->set("prefix", prefix_);
+      opt->set("prefix", prefix_ + "_att" + std::to_string(i));
       auto att = New<rnn::GlobalAttention>(graph, opt, layerOut, layerOut, batchMask);
 
       std::vector<Expr> attsteps;

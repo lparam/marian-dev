@@ -7,9 +7,6 @@
 namespace marian {
 
 class EncoderT2T : public EncoderBase {
-protected:
-  std::vector<Ptr<rnn::GlobalAttention>> att_;
-
 public:
   template <class... Args>
   EncoderT2T(Ptr<Config> options, Args... args)
@@ -53,24 +50,19 @@ public:
     auto x = w + p;
 
     int layers = 3;
-    if(att_.size() < layers)
-      att_.resize(layers);
-
     Expr layerOut = x;
     for(int i = 0; i < layers; i++) {
 
+      auto opt = New<Options>();
+      opt->set("dimState", dimEmb);
+      opt->set("dropout", 0);
+      opt->set("layer-normalization", false);
+      opt->set("prefix", prefix_);
+      auto att = New<rnn::GlobalAttention>(graph, opt, layerOut, layerOut, batchMask);
+
       std::vector<Expr> attsteps;
-      for(int j = 0; j < dimSrcWords; ++j) {
-        if(!att_[i]) {
-          auto opt = New<Options>();
-          opt->set("dimState", dimEmb);
-          opt->set("dropout", 0);
-          opt->set("layer-normalization", false);
-          opt->set("prefix", prefix_);
-          att_[i] = New<rnn::GlobalAttention>(graph, opt, layerOut, layerOut, batchMask);
-        }
-        attsteps.push_back(att_[i]->apply(step(layerOut, j)));
-      }
+      for(int j = 0; j < dimSrcWords; ++j)
+        attsteps.push_back(att->apply(step(layerOut, j)));
 
       auto layerAtt = concatenate(attsteps, axis=2);
       auto gamma1 = graph->param(prefix_ + "_gamma1" + std::to_string(i),

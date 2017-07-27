@@ -1224,12 +1224,12 @@ float L2Norm(Tensor in) {
 
 __global__ void gAtt(float* out,
                      const float* va,
-                     const float* ctx,
-                     const float* state,
+                     const float* keys,
+                     const float* query,
                      int m,  // total rows (batch x time x beam)
                      int k,  // depth
                      int b,  // batch size
-                     int t   // time of ctx
+                     int t  // time of keys
                      ) {
   int rows = m;
   int cols = k;
@@ -1237,8 +1237,8 @@ __global__ void gAtt(float* out,
     int j = bid + blockIdx.x;
     if(j < rows) {
       const float* vaRow = va;
-      const float* ctxRow = ctx + (j % (b * t)) * cols;
-      const float* stateRow = state + (j / (b * t) + j % b) * cols;
+      const float* keysRow = keys + (j % (b * t)) * cols;
+      const float* queryRow = query + (j / (b * t) + j % b) * cols;
 
       extern __shared__ float _share[];
       float* _sum = _share + blockDim.x;
@@ -1247,7 +1247,7 @@ __global__ void gAtt(float* out,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          float z = ctxRow[id] + stateRow[id];
+          float z = keysRow[id] + queryRow[id];
           float ex = tanhf(z) * vaRow[id];
           _sum[threadIdx.x] += ex;
         }
@@ -1267,14 +1267,14 @@ __global__ void gAtt(float* out,
   }
 }
 
-void Att(Tensor out, Tensor va, Tensor context, Tensor state) {
+void Att(Tensor out, Tensor va, Tensor keys, Tensor query) {
   cudaSetDevice(out->getDevice());
 
   size_t m = out->shape()[0] * out->shape()[2] * out->shape()[3];
 
-  size_t b = context->shape()[0];
-  size_t k = context->shape()[1];
-  size_t t = context->shape()[2];
+  size_t b = keys->shape()[0];
+  size_t k = keys->shape()[1];
+  size_t t = keys->shape()[2];
 
   int blocks = std::min(MAX_BLOCKS, (int)m);
   int threads = std::min(MAX_THREADS, (int)k);
@@ -1282,8 +1282,8 @@ void Att(Tensor out, Tensor va, Tensor context, Tensor state) {
 
   gAtt<<<blocks, threads, shared>>>(out->data(),
                                     va->data(),
-                                    context->data(),
-                                    state->data(),
+                                    keys->data(),
+                                    query->data(),
                                     m,
                                     k,
                                     b,

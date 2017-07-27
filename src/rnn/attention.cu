@@ -15,19 +15,23 @@ struct AttentionNodeOp : public NaryNodeOp {
     Shape shape = nodes[1]->shape();
 
     Shape vaShape = nodes[0]->shape();
-    Shape ctxShape = nodes[1]->shape();
-    Shape stateShape = nodes[2]->shape();
+    Shape keysShape = nodes[1]->shape();
+    Shape queryShape = nodes[2]->shape();
 
-    for(int i = 0; i < stateShape.size(); ++i) {
-      UTIL_THROW_IF2(ctxShape[i] != stateShape[i] && ctxShape[i] != 1
-                         && stateShape[i] != 1,
+    for(int i = 0; i < 2; ++i) {
+      UTIL_THROW_IF2(keysShape[i] != queryShape[i]
+                     && keysShape[i] != 1
+                     && queryShape[i] != 1,
                      "Shapes cannot be broadcasted");
-      shape.set(i, std::max(ctxShape[i], stateShape[i]));
+      shape.set(i, std::max(keysShape[i], queryShape[i]));
     }
 
     UTIL_THROW_IF2(vaShape[0] != shape[1] || vaShape[1] != 1, "Wrong size");
 
     shape.set(1, 1);
+    shape.set(2, keysShape[2]);
+    shape.set(3, queryShape[2] * queryShape[3]);
+
     return shape;
   }
 
@@ -61,14 +65,12 @@ struct AttentionNodeOp : public NaryNodeOp {
   const std::string color() { return "yellow"; }
 };
 
-Expr attOps(Expr va, Expr context, Expr state, Expr coverage) {
-  std::vector<Expr> nodes{va, context, state};
-  if(coverage)
-    nodes.push_back(coverage);
+Expr attOps(Expr va, Expr keys, Expr query) {
+  std::vector<Expr> nodes{va, keys, query};
 
-  int dimBatch = context->shape()[0];
-  int dimWords = context->shape()[2];
-  int dimBeam = state->shape()[3];
+  int dimBatch = keys->shape()[0];
+  int dimWords = keys->shape()[2];
+  int dimBeam = query->shape()[2] * query->shape()[3];
   return reshape(Expression<AttentionNodeOp>(nodes),
                  {dimWords, dimBatch, 1, dimBeam});
 }

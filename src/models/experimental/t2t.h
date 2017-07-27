@@ -58,14 +58,10 @@ public:
       opt->set("dropout", 0);
       opt->set("layer-normalization", false);
       opt->set("prefix", prefix_ + "_att" + std::to_string(i));
-      
+
       auto att = New<rnn::GlobalAttention>(graph, opt, layerOut, layerOut, batchMask);
-
-      std::vector<Expr> attsteps;
-      for(int j = 0; j < dimSrcWords; ++j)
-        attsteps.push_back(att->apply(step(layerOut, j)));
-
-      auto layerAtt = concatenate(attsteps, axis=2);
+      auto layerAtt = att->apply(layerOut);
+      
       auto gamma1 = graph->param(prefix_ + "_gamma1" + std::to_string(i),
                                  {1, dimEmb},
                                  keywords::init = inits::from_value(1.f));

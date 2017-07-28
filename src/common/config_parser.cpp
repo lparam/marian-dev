@@ -347,6 +347,8 @@ void ConfigParser::addOptionsTraining(po::options_description& desc) {
       "This can option is only active when batch-flexible-lr is on. It determines number of words per batch that the learning rate corresponds to.")
     ("tau", po::value<size_t>()->default_value(1),
      "SGD update delay, 1 = no delay")
+    ("tau-max-regain", po::value<size_t>()->default_value(1),
+     "How many batches need to pass until we reach the maximum allowed value of tau.")
 
     ("clip-norm", po::value<double>()->default_value(1.f),
      "Clip gradient norm to  arg  (0 to disable)")
@@ -613,6 +615,7 @@ void ConfigParser::parseOptions(
     SET_OPTION("optimizer", std::string);
     SET_OPTION("learn-rate", double);
     SET_OPTION("tau", size_t);
+    SET_OPTION("tau-max-regain", size_t);
     SET_OPTION("mini-batch-words", int);
     SET_OPTION("dynamic-batching", bool);
 

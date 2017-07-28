@@ -209,6 +209,7 @@ public:
 
 private:
   bool first_{true};
+  size_t tau_max_regain;
 
   std::vector<Ptr<Builder>> builders_;
   std::vector<Ptr<ExpressionGraph>> graphs_;
@@ -434,8 +435,18 @@ private:
       }
 
       auto costNode = builder->build(graph, batch);
+      
+      //Scale tau_ if necessary
+      thread_local size_t tau_cur = tau_;
+      if (tau_max_regain > 1) {
+        thread_local size_t tau_step = tau_max_regain/tau_;
+        static const size_t ONE = 1; //Compiler...
+        tau_cur = std::min(tau_,  std::max( ONE,  t/tau_step));
+      }
+      
+      std::cout << "Tau CUR: " << tau_cur << std::endl;
 
-      if(t % tau_ == 0) {
+      if(t % tau_cur == 0) {
           fetchParams(graph->params()->vals(),
                       params_[globalVersionNumber[my_id] % history_size_]);
       }
@@ -448,7 +459,7 @@ private:
       size_t batch_words = batch->words();
 
       Tensor gradients;
-      if(tau_ > 1) {
+      if(tau_cur> 1) {
         if(t == 0) {
           accAlloc = New<TensorAllocator>(graph->getDevice());
           accAlloc->reserveExact(graph->params()->grads()->memory()->size());
@@ -467,14 +478,14 @@ private:
 
       t++;
 
-      if(t % tau_ == 0) {
+      if(t % tau_cur== 0) {
 
         cudaStreamSynchronize(0);
         pushGradients(gradients, num_seen_words);
 
         num_seen_words = 0; //Reset the counter of seen words after gradient update
 
-        if(tau_ > 1) {
+        if(tau_cur> 1) {
           gradients->set(0);
         }
 
@@ -529,7 +540,8 @@ public:
         shardSync_{devices_.size()},
         movingAvg_{options_->get<bool>("moving-average")},
         mvDecay_{(float)options_->get<double>("moving-decay")},
-        tau_{options_->get<size_t>("tau")} {
+        tau_{options_->get<size_t>("tau")},
+        tau_max_regain{options_->get<size_t>("tau-max-regain")}{
 
     for(int i = 0; i < history_size_; i++)
       params_.push_back(std::vector<Tensor>());

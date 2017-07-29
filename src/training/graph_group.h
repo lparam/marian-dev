@@ -437,14 +437,11 @@ private:
       auto costNode = builder->build(graph, batch);
       
       //Scale tau_ if necessary
-      thread_local size_t tau_cur = tau_;
+      size_t tau_cur = tau_;
       if (tau_max_regain > 1) {
         thread_local size_t tau_step = tau_max_regain/tau_;
-        static const size_t ONE = 1; //Compiler...
-        tau_cur = std::min(tau_,  std::max( ONE,  t/tau_step));
+        tau_cur = std::min(tau_,  std::max( (size_t)1,  t/tau_step));
       }
-      
-      std::cout << "Tau CUR: " << tau_cur << std::endl;
 
       if(t % tau_cur == 0) {
           fetchParams(graph->params()->vals(),
@@ -459,13 +456,15 @@ private:
       size_t batch_words = batch->words();
 
       Tensor gradients;
-      if(tau_cur> 1) {
-        if(t == 0) {
+      
+      if(t == 0 && tau_ > 1) {
           accAlloc = New<TensorAllocator>(graph->getDevice());
           accAlloc->reserveExact(graph->params()->grads()->memory()->size());
           accAlloc->allocate(accGradients, graph->params()->grads()->shape());
           accGradients->set(0);
-        }
+      }
+      
+      if(tau_cur> 1) {
 
         Element(_1 += _2, accGradients, graph->params()->grads());
         gradients = accGradients;
@@ -485,7 +484,7 @@ private:
 
         num_seen_words = 0; //Reset the counter of seen words after gradient update
 
-        if(tau_cur> 1) {
+        if(tau_> 1) {
           gradients->set(0);
         }
 

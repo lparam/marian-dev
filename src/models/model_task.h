@@ -31,6 +31,7 @@ Ptr<ModelTask> WrapModelType(Ptr<Config> options) {
   REGISTER_MODEL("pooling", PoolingModel);
 
   REGISTER_MODEL("multi-s2s", MultiS2S);
+  REGISTER_MODEL("multi-conv", MultiConvS2S);
   REGISTER_MODEL("multi-hard-att", MultiHardSoftAtt);
 
   UTIL_THROW2("Unknown model type: " << type);

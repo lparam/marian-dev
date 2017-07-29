@@ -224,6 +224,8 @@ Ptr<Scorer> scorerByType(std::string fname,
     return New<ScorerWrapper<PoolingModel>>(fname, weight, model, options);
   } else if(type == "convolution") {
     return New<ScorerWrapper<ConvNMT>>(fname, weight, model, options);
+  } else if(type == "multi-conv") {
+    return New<ScorerWrapper<MultiConvS2S>>(fname, weight, model, options);
   } else {
     UTIL_THROW2("Unknown decoder type: " + type);
   }

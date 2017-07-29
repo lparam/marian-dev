@@ -2,6 +2,7 @@
 
 #include "marian.h"
 #include "models/s2s.h"
+#include "models/experimental/pooling.h"
 
 namespace marian {
 
@@ -213,6 +214,15 @@ class MultiS2S : public EncoderDecoder<MultiEncoderS2S, MultiDecoderS2S> {
 public:
   template <class... Args>
   MultiS2S(Ptr<Config> options, Args... args)
+      : EncoderDecoder(options, {0, 1, 2}, args...) {}
+};
+
+typedef MultiEncoder< EncoderS2S, EncoderPooling> MultiConvEncoder;
+
+class MultiConvS2S : public EncoderDecoder<MultiConvEncoder, MultiDecoderS2S> {
+public:
+  template <class... Args>
+  MultiConvS2S(Ptr<Config> options, Args... args)
       : EncoderDecoder(options, {0, 1, 2}, args...) {}
 };
 

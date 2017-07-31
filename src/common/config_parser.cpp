@@ -440,6 +440,8 @@ void ConfigParser::addOptionsTranslate(po::options_description& desc) {
       "Paths to vocabulary files have to correspond to --input")
     ("beam-size,b", po::value<size_t>()->default_value(12),
       "Beam size used during search")
+    ("max-ratio", po::value<size_t>()->default_value(3),
+      "Max ratio of translation to source lenght")
     ("normalize,n", po::value<bool>()->zero_tokens()->default_value(false),
       "Normalize translation score by translation length")
     ("allow-unk", po::value<bool>()->zero_tokens()->default_value(false),

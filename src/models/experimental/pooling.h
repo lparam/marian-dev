@@ -84,29 +84,35 @@ public:
     auto p = reshape(rows(pEmb, pIndices), {dimBatch, dimEmb, dimSrcWords});
     auto x = (w + p) * xMask;
 
-    int k = 3;
-    // auto c = MeanInTime(x, xMask, k);
-    // return New<EncoderStatePooling>(c, x, xMask, batch);
+    int k = opt<int>("conv-width");
+    std::string convType = opt<std::string>("conv-type");
+    if (convType == "pooling") {
+      auto c = MeanInTime(x, xMask, k);
+      return New<EncoderStatePooling>(c, x, xMask, batch);
+    } else if (convType == "conv") {
+      int layersC = 6;
+      int layersA = 3;
+      auto Wup = graph->param("W_c_up", {dimEmb, 2 * dimEmb}, init=inits::glorot_uniform);
+      auto Bup = graph->param("b_c_up", {1, 2 * dimEmb}, init=inits::zeros);
 
-    int layersC = 6;
-    int layersA = 3;
-    auto Wup = graph->param("W_c_up", {dimEmb, 2 * dimEmb}, init=inits::glorot_uniform);
-    auto Bup = graph->param("b_c_up", {1, 2 * dimEmb}, init=inits::zeros);
+      auto Wdown = graph->param("W_c_down", {2 * dimEmb, dimEmb}, init=inits::glorot_uniform);
+      auto Bdown = graph->param("b_c_down", {1, dimEmb}, init=inits::zeros);
 
-    auto Wdown = graph->param("W_c_down", {2 * dimEmb, dimEmb}, init=inits::glorot_uniform);
-    auto Bdown = graph->param("b_c_down", {1, dimEmb}, init=inits::zeros);
+      auto cnnC = affine(x, Wup, Bup);
+      for (int i = 0; i < layersC; ++i) {
+        cnnC = ConvolutionInTime("cnn-c." + std::to_string(i), cnnC, xMask, k);
+      }
+      cnnC = affine(cnnC, Wdown, Bdown) * xMask;
 
-    auto cnnC = affine(x, Wup, Bup);
-    for (int i = 0; i < layersC; ++i) {
-      cnnC = ConvolutionInTime("cnn-c." + std::to_string(i), cnnC, xMask, k);
+      auto cnnA = x;
+      for (int i = 0; i < layersA; ++i) {
+        cnnA = ConvolutionInTime("cnn-a." + std::to_string(i), cnnA, xMask, k);
+      }
+      return New<EncoderStatePooling>(cnnC, cnnA + x, xMask, batch);
+    } else {
+      return nullptr;
     }
-    cnnC = affine(cnnC, Wdown, Bdown) * xMask;
 
-    auto cnnA = x;
-    for (int i = 0; i < layersA; ++i) {
-      cnnA = ConvolutionInTime("cnn-a." + std::to_string(i), cnnA, xMask, k);
-    }
-    return New<EncoderStatePooling>(cnnC, cnnA + x, xMask, batch);
   }
 };
 

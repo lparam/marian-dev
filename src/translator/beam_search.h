@@ -106,7 +106,7 @@ public:
       // prepare costs for beam search
       auto totalCosts = prevCosts;
 
-      for(int i = 0; i < scorers_.size(); ++i) {
+      for(size_t i = 0; i < scorers_.size(); ++i) {
         states[i] = scorers_[i]->step(graph, states[i], hypIndices, embIndices);
         totalCosts
             = totalCosts + scorers_[i]->getWeight() * states[i]->getProbs();

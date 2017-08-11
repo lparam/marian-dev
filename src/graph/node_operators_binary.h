@@ -127,7 +127,9 @@ struct ElementBinaryNodeOp : public NaryNodeOp {
     Shape shape2 = b->shape();
     for(int i = 0; i < shape1.size(); ++i) {
       UTIL_THROW_IF2(shape1[i] != shape2[i] && shape1[i] != 1 && shape2[i] != 1,
-                     "Shapes cannot be broadcasted");
+                     "Shapes " + std::to_string(i) + " cannot be broadcasted: "
+                     + std::to_string(shape1[i]) + " " + std::to_string(shape2[i]) +
+                    " " + a->name() + " " + b->name());
       shape1.set(i, std::max(shape1[i], shape2[i]));
     }
     return shape1;

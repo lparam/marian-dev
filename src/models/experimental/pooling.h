@@ -42,7 +42,7 @@ public:
     using namespace keywords;
 
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIdx];
-    int dimEmb = opt<int>("dim-emb");
+    int dimEmb = opt<std::vector<int>>("dim-emb")[batchIdx];
 
     auto embFactory = embedding(graph)
                       ("prefix", prefix_ + "_Wemb")

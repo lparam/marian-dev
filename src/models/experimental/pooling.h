@@ -102,13 +102,96 @@ public:
       for (int i = 0; i < layersC; ++i) {
         cnnC = ConvolutionInTime("cnn-c." + std::to_string(i), cnnC, xMask, k);
       }
+
       cnnC = affine(cnnC, Wdown, Bdown) * xMask;
 
       auto cnnA = x;
       for (int i = 0; i < layersA; ++i) {
         cnnA = ConvolutionInTime("cnn-a." + std::to_string(i), cnnA, xMask, k);
       }
-      return New<EncoderStatePooling>(cnnC, cnnA + x, xMask, batch);
+      return New<EncoderStatePooling>(cnnC, cnnA, xMask, batch);
+
+    } else if (convType == "conv-rnn") {
+      int layersC = 6;
+      int layersA = 3;
+      auto Wup = graph->param("W_c_up", {dimEmb, 2 * dimEmb}, init=inits::glorot_uniform);
+      auto Bup = graph->param("b_c_up", {1, 2 * dimEmb}, init=inits::zeros);
+
+      auto Wdown = graph->param("W_c_down", {2 * dimEmb, dimEmb}, init=inits::glorot_uniform);
+      auto Bdown = graph->param("b_c_down", {1, dimEmb}, init=inits::zeros);
+
+      auto cnnC = affine(x, Wup, Bup);
+      for (int i = 0; i < layersC; ++i) {
+        cnnC = ConvolutionInTime("cnn-c." + std::to_string(i), cnnC, xMask, k);
+      }
+
+      cnnC = affine(cnnC, Wdown, Bdown) * xMask;
+
+      int first = opt<int>("enc-depth");
+
+      auto forward = rnn::dir::forward;
+      auto backward = rnn::dir::backward;
+
+      using namespace keywords;
+      float dropoutRnn = inference_ ? 0 : opt<float>("dropout-rnn");
+      auto rnnFw = rnn::rnn(graph)
+                  ("type", opt<std::string>("enc-cell"))
+                  ("direction", forward)
+                  ("dimInput", opt<int>("dim-emb"))
+                  ("dimState", opt<int>("dim-rnn"))
+                  ("dropout", dropoutRnn)
+                  ("layer-normalization", opt<bool>("layer-normalization"))
+                  ("skip", opt<bool>("skip"));
+
+      for(int i = 1; i <= first; ++i) {
+        auto stacked = rnn::stacked_cell(graph);
+        for(int j = 1; j <= opt<int>("enc-cell-depth"); ++j) {
+          std::string paramPrefix = prefix_ + "_bi";
+          if(i > 1)
+            paramPrefix += "_l" + std::to_string(i);
+          if(i > 1 || j > 1)
+            paramPrefix += "_cell" + std::to_string(j);
+          stacked.push_back(rnn::cell(graph)
+                            ("prefix", paramPrefix));
+        }
+        rnnFw.push_back(stacked);
+      }
+
+      auto rnnBw = rnn::rnn(graph)
+                  ("type", opt<std::string>("enc-cell"))
+                  ("direction", backward)
+                  ("dimInput", opt<int>("dim-emb"))
+                  ("dimState", opt<int>("dim-rnn"))
+                  ("dropout", dropoutRnn)
+                  ("layer-normalization", opt<bool>("layer-normalization"))
+                  ("skip", opt<bool>("skip"));
+
+      for(int i = 1; i <= first; ++i) {
+        auto stacked = rnn::stacked_cell(graph);
+        for(int j = 1; j <= opt<int>("enc-cell-depth"); ++j) {
+          std::string paramPrefix = prefix_ + "_bi_r";
+          if(i > 1)
+            paramPrefix += "_l" + std::to_string(i);
+          if(i > 1 || j > 1)
+            paramPrefix += "_cell" + std::to_string(j);
+          stacked.push_back(rnn::cell(graph)
+                            ("prefix", paramPrefix));
+        }
+        rnnBw.push_back(stacked);
+      }
+
+      auto context = concatenate({rnnFw->transduce(cnnC, xMask),
+                                  rnnBw->transduce(cnnC, xMask)},
+                                  axis=1);
+      auto cnnA = x;
+      for (int i = 0; i < layersA; ++i) {
+        cnnA = ConvolutionInTime("cnn-a." + std::to_string(i), cnnA, xMask, k);
+      }
+      auto WAdown = graph->param("W_a_down", {dimEmb, 2 * dimEmb}, init=inits::glorot_uniform);
+      auto BAdown = graph->param("b_a_down", {1, 2 * dimEmb}, init=inits::zeros);
+
+      cnnA = affine(cnnA, WAdown, BAdown);
+      return New<EncoderStatePooling>(context, cnnA, xMask, batch);
     } else {
       return nullptr;
     }

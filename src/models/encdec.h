@@ -72,7 +72,7 @@ public:
     using namespace keywords;
 
     int dimVoc = opt<std::vector<int>>("dim-vocabs").back();
-    int dimEmb = opt<int>("dim-emb");
+    int dimEmb = opt<std::vector<int>>("dim-emb").back();
 
     auto yEmbFactory = embedding(graph)
                        ("prefix", prefix_ + "_Wemb")
@@ -98,7 +98,7 @@ public:
 
     auto chosenEmbeddings = rows(yEmb, subBatch->indices());
 
-    auto y = reshape(chosenEmbeddings, {dimBatch, opt<int>("dim-emb"), dimWords});
+    auto y = reshape(chosenEmbeddings, {dimBatch, opt<std::vector<int>>("dim-emb").back(), dimWords});
 
     auto yMask = graph->constant({dimBatch, 1, dimWords},
                                  init = inits::from_vector(subBatch->mask()));
@@ -118,7 +118,7 @@ public:
                                 const std::vector<size_t>& embIdx) {
     using namespace keywords;
 
-    int dimTrgEmb = opt<int>("dim-emb");
+    int dimTrgEmb = opt<std::vector<int>>("dim-emb").back();
     int dimTrgVoc = opt<std::vector<int>>("dim-vocabs").back();
 
     Expr selectedEmbs;

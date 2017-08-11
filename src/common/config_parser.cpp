@@ -227,9 +227,13 @@ void ConfigParser::addOptionsModel(po::options_description& desc) {
       ->multitoken()
       ->default_value(std::vector<int>({50000, 50000}), "50000 50000"),
      "Maximum items in vocabulary ordered by rank")
-    ("dim-emb", po::value<int>()->default_value(512),
+    ("dim-emb", po::value<std::vector<int>>()
+     ->multitoken()
+     ->default_value(std::vector<int>({512, 512}), "512 512"),
      "Size of embedding vector")
-    ("dim-rnn", po::value<int>()->default_value(1024),
+    ("dim-rnn", po::value<std::vector<int>>()
+     ->multitoken()
+     ->default_value(std::vector<int>({1024, 1024}), "1024 1024"),
      "Size of rnn hidden state")
     ("enc-type", po::value<std::string>()->default_value("bidirectional"),
      "Type of encoder RNN : bidirectional, bi-unidirectional, alternating (s2s)")
@@ -573,8 +577,8 @@ void ConfigParser::parseOptions(
 
   SET_OPTION("type", std::string);
   SET_OPTION("dim-vocabs", std::vector<int>);
-  SET_OPTION("dim-emb", int);
-  SET_OPTION("dim-rnn", int);
+  SET_OPTION("dim-emb", std::vector<int>);
+  SET_OPTION("dim-rnn", std::vector<int>);
 
   SET_OPTION("enc-type", std::string);
   SET_OPTION("enc-cell", std::string);

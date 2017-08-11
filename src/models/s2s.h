@@ -9,7 +9,8 @@ public:
 
   Expr applyEncoderRNN(Ptr<ExpressionGraph> graph,
                        Expr embeddings, Expr mask,
-                       std::string type) {
+                       std::string type,
+                       size_t encIdx) {
 
     int first, second;
     if(type == "bidirectional" || type == "alternating") {
@@ -33,11 +34,14 @@ public:
     using namespace keywords;
     float dropoutRnn = inference_ ? 0 : opt<float>("dropout-rnn");
 
+    // std::cerr << "AAAA: " << __LINE__ << std::endl;
+    // std::cerr << opt<std::vector<int>>("dim-rnn").front() << std::endl;
+    // std::cerr << "AAAA: " << __LINE__ << std::endl;
     auto rnnFw = rnn::rnn(graph)
                  ("type", opt<std::string>("enc-cell"))
                  ("direction", forward)
-                 ("dimInput", opt<int>("dim-emb"))
-                 ("dimState", opt<int>("dim-rnn"))
+                 ("dimInput", opt<std::vector<int>>("dim-emb")[encIdx])
+                 ("dimState", opt<std::vector<int>>("dim-rnn")[encIdx])
                  ("dropout", dropoutRnn)
                  ("layer-normalization", opt<bool>("layer-normalization"))
                  ("skip", opt<bool>("skip"));
@@ -56,11 +60,12 @@ public:
       rnnFw.push_back(stacked);
     }
 
+    // std::cerr << "AAAA: " << __LINE__ << std::endl;
     auto rnnBw = rnn::rnn(graph)
                  ("type", opt<std::string>("enc-cell"))
                  ("direction", backward)
-                 ("dimInput", opt<int>("dim-emb"))
-                 ("dimState", opt<int>("dim-rnn"))
+                 ("dimInput", opt<std::vector<int>>("dim-emb")[encIdx])
+                 ("dimState", opt<std::vector<int>>("dim-rnn")[encIdx])
                  ("dropout", dropoutRnn)
                  ("layer-normalization", opt<bool>("layer-normalization"))
                  ("skip", opt<bool>("skip"));
@@ -88,10 +93,11 @@ public:
       // previous bidirectional RNN through multiple layers
 
       // construct RNN first
+    // std::cerr << "AAAA: " << __LINE__ << std::endl;
       auto rnnUni = rnn::rnn(graph)
                     ("type", opt<std::string>("enc-cell"))
-                    ("dimInput", 2 * opt<int>("dim-rnn"))
-                    ("dimState", opt<int>("dim-rnn"))
+                    ("dimInput", 2 * opt<std::vector<int>>("dim-rnn")[encIdx])
+                    ("dimState", opt<std::vector<int>>("dim-rnn")[encIdx])
                     ("dropout", dropoutRnn)
                     ("layer-normalization", opt<bool>("layer-normalization"))
                     ("skip", opt<bool>("skip"));
@@ -123,7 +129,7 @@ public:
 
     // create source embeddings
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[encoderIndex];
-    int dimEmb = opt<int>("dim-emb");
+    int dimEmb = opt<std::vector<int>>("dim-emb")[encoderIndex];
 
     auto embFactory = embedding(graph)
                       ("prefix", prefix_ + "_Wemb")
@@ -165,7 +171,8 @@ public:
     }
 
     Expr context = applyEncoderRNN(graph, batchEmbeddings, batchMask,
-                                   opt<std::string>("enc-type"));
+                                   opt<std::string>("enc-type"),
+                                   encoderIndex);
 
     return New<EncoderState>(context, batchMask, batch);
   }
@@ -179,10 +186,11 @@ private:
 Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
                                   Ptr<DecoderState> state) {
   float dropoutRnn = inference_ ? 0 : opt<float>("dropout-rnn");
+    // std::cerr << "AAAA: " << __LINE__ << std::endl;
   auto rnn = rnn::rnn(graph)
              ("type", opt<std::string>("dec-cell"))
-             ("dimInput", opt<int>("dim-emb"))
-             ("dimState", opt<int>("dim-rnn"))
+             ("dimInput", opt<std::vector<int>>("dim-emb").back())
+             ("dimState", opt<std::vector<int>>("dim-rnn").back())
              ("dropout", dropoutRnn)
              ("layer-normalization", opt<bool>("layer-normalization"))
              ("skip", opt<bool>("skip"));
@@ -258,10 +266,11 @@ public:
     auto graph = meanContext->graph();
 
     // apply single layer network to mean to map into decoder space
+    // std::cerr << "AAAA: " << __LINE__ << std::endl;
     auto mlp = mlp::mlp(graph)
                .push_back(mlp::dense(graph)
                           ("prefix", prefix_ + "_ff_state")
-                          ("dim", opt<int>("dim-rnn"))
+                          ("dim", opt<std::vector<int>>("dim-rnn").back())
                           ("activation", mlp::act::tanh)
                           ("layer-normalization", opt<bool>("layer-normalization")));
     auto start = mlp->apply(meanContext);
@@ -303,7 +312,7 @@ public:
     // construct deep output multi-layer network layer-wise
     auto layer1 = mlp::dense(graph)
                   ("prefix", prefix_ + "_ff_logit_l1")
-                  ("dim", opt<int>("dim-emb"))
+                  ("dim", opt<std::vector<int>>("dim-emb").back())
                   ("activation", mlp::act::tanh)
                   ("layer-normalization", opt<bool>("layer-normalization"));
 

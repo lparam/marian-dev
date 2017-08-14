@@ -26,8 +26,8 @@ Expr MeanInTime(Expr x, Expr mask, int k) {
   return tanh(Pooling("Pooling", "avg_pooling", k, 1, k/2, 0)(x, mask) + x);
 }
 
-Expr ConvolutionInTime(std::string name, Expr x, Expr mask, int k) {
-  return tanh(Convolution(name, k, 1, 1, k/2, 0)(x, mask) + x);
+Expr ConvolutionInTime(std::string name, Expr x, Expr mask, int k, int n) {
+  return Convolution(name, k, 1, 1, k/2, 0)(x, mask, n);
 }
 
 class EncoderPooling : public EncoderBase {
@@ -101,9 +101,7 @@ public:
         cnnC = x;
       }
 
-      for (int i = 0; i < layersC; ++i) {
-        cnnC = ConvolutionInTime("cnn-c." + std::to_string(i), cnnC, xMask, k);
-      }
+      cnnC = ConvolutionInTime("cnn-c.", cnnC, xMask, k, layersC);
 
       if (dimEmb != dimHid) {
         auto Wdown = graph->param("W_c_down", {dimHid, dimEmb}, init=inits::glorot_uniform);
@@ -111,11 +109,8 @@ public:
         cnnC = affine(cnnC, Wdown, Bdown) * xMask;
       }
 
-      int layersA = layersC / 3;
-      auto cnnA = x;
-      for (int i = 0; i < layersA; ++i) {
-        cnnA = ConvolutionInTime("cnn-a." + std::to_string(i), cnnA, xMask, k);
-      }
+      int layersA = layersC / 2;
+      auto cnnA = ConvolutionInTime("cnn-a.", x, xMask, k, layersA);
       return New<EncoderStatePooling>(cnnC, cnnA, xMask, batch);
 
     } /* else if (convType == "conv-rnn") { */

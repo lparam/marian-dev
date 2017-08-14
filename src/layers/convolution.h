@@ -81,32 +81,31 @@ class Convolution {
       return output;
     }
 
-    Expr operator()(Expr x, Expr mask) {
+    Expr operator()(Expr x, Expr mask, int n) {
       params_ = {};
       auto graph = x->graph();
 
       auto masked = x * mask;
       auto xNCHW = convert2NCHW(masked);
-
-
-      // std::cerr << "xNCHW " << xNCHW->shape() << std::endl;
+      auto maskNCHW = convert2NCHW(mask);
 
       int layerIn = xNCHW->shape()[1];
 
-      auto kernel = graph->param(name_,
-          {layerIn, kernelNum_, kernelHeight_, kernelWidth_},
-          keywords::init=inits::glorot_uniform);
-      auto bias = graph->param(name_ + "_bias",  {1, kernelNum_, 1, 1},
-                               keywords::init=inits::zeros);
+      Expr input = xNCHW;
+      for (int i = 0; i < n; ++i) {
+        auto kernel = graph->param(name_ + std::to_string(i),
+            {layerIn, kernelNum_, kernelHeight_, kernelWidth_},
+            keywords::init=inits::glorot_uniform);
+        auto bias = graph->param(name_ + std::to_string(i) + "_bias",  {1, kernelNum_, 1, 1},
+                                keywords::init=inits::zeros);
 
+        auto output = convolution(input, kernel, bias,
+            paddingHeight_, paddingWidth_,
+            strideHeight_, strideWidth_);
+        input = tanh(input + output) * maskNCHW;
+      }
 
-      auto output = convolution(xNCHW, kernel, bias,
-          paddingHeight_, paddingWidth_,
-          strideHeight_, strideWidth_);
-
-      // std::cerr << "output: " << output->shape() << std::endl;
-
-      return convert2Marian(output, x) * mask;
+      return convert2Marian(input, x);
     }
 
   private:

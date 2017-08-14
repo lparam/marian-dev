@@ -77,6 +77,13 @@ public:
 
     auto pEmb = posFactory.construct();
 
+    float dropProb = inference_ ? 0 : opt<float>("dropout-src");
+    if(dropProb) {
+      int srcWords = pEmb->shape()[2];
+      auto dropMask = graph->dropout(dropProb, {1, 1, srcWords});
+      pEmb = dropout(pEmb, mask = dropMask);
+    }
+
     std::vector<size_t> pIndices;
     for(int i = 0; i < dimSrcWords; ++i)
       for(int j = 0; j < dimBatch; j++)

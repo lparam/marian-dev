@@ -43,6 +43,7 @@ public:
 
     int dimVoc = opt<std::vector<int>>("dim-vocabs")[batchIdx];
     int dimEmb = opt<std::vector<int>>("dim-emb")[batchIdx];
+    int dimHid = opt<std::vector<int>>("dim-rnn")[batchIdx];
 
     auto embFactory = embedding(graph)
                       ("prefix", prefix_ + "_Wemb")
@@ -91,20 +92,26 @@ public:
       return New<EncoderStatePooling>(c, x, xMask, batch);
     } else if (convType == "conv") {
       int layersC = 6;
-      int layersA = 3;
-      auto Wup = graph->param("W_c_up", {dimEmb, 2 * dimEmb}, init=inits::glorot_uniform);
-      auto Bup = graph->param("b_c_up", {1, 2 * dimEmb}, init=inits::zeros);
+      Expr cnnC;
+      if (dimEmb != dimHid) {
+        auto Wup = graph->param("W_c_up", {dimEmb, dimHid}, init=inits::glorot_uniform);
+        auto Bup = graph->param("b_c_up", {1, dimHid}, init=inits::zeros);
+        auto cnnC = affine(x, Wup, Bup);
+      } else {
+        cnnC = x;
+      }
 
-      auto Wdown = graph->param("W_c_down", {2 * dimEmb, dimEmb}, init=inits::glorot_uniform);
-      auto Bdown = graph->param("b_c_down", {1, dimEmb}, init=inits::zeros);
-
-      auto cnnC = affine(x, Wup, Bup);
       for (int i = 0; i < layersC; ++i) {
         cnnC = ConvolutionInTime("cnn-c." + std::to_string(i), cnnC, xMask, k);
       }
 
-      cnnC = affine(cnnC, Wdown, Bdown) * xMask;
+      if (dimEmb != dimHid) {
+        auto Wdown = graph->param("W_c_down", {dimHid, dimEmb}, init=inits::glorot_uniform);
+        auto Bdown = graph->param("b_c_down", {1, dimEmb}, init=inits::zeros);
+        cnnC = affine(cnnC, Wdown, Bdown) * xMask;
+      }
 
+      int layersA = layersC / 3;
       auto cnnA = x;
       for (int i = 0; i < layersA; ++i) {
         cnnA = ConvolutionInTime("cnn-a." + std::to_string(i), cnnA, xMask, k);

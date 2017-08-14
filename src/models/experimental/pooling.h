@@ -69,7 +69,7 @@ public:
     int dimBatch = w->shape()[0];
     int dimSrcWords = w->shape()[2];
 
-    int dimMaxLength = 50;
+    int dimMaxLength = 1024;
     auto posFactory = embedding(graph)
                       ("prefix", prefix_ + "_Pemb")
                       ("dimVocab", dimMaxLength)

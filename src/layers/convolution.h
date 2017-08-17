@@ -241,8 +241,7 @@ class MultiConvolution : public ConvPoolingBase {
 
         auto kernel = graph->param(name_ + std::to_string(i),
             {layerIn, kernelDim, kernelWidth, x->shape()[1]},
-            keywords::init=inits::ones);
-            // keywords::init=inits::glorot_uniform);
+             keywords::init=inits::glorot_uniform);
         auto bias = graph->param(name_ + std::to_string(i) + "_bias",  {1, kernelDim, 1, 1},
                                  keywords::init=inits::zeros);
 

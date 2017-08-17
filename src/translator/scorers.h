@@ -8,6 +8,7 @@
 #include "models/multi_s2s.h"
 #include "experimental/convolution/conv_nmt.h"
 #include "models/experimental/pooling.h"
+#include "models/experimental/char_conv.h"
 
 namespace marian {
 
@@ -226,6 +227,8 @@ Ptr<Scorer> scorerByType(std::string fname,
     return New<ScorerWrapper<ConvNMT>>(fname, weight, model, options);
   } else if(type == "multi-conv") {
     return New<ScorerWrapper<MultiConvS2S>>(fname, weight, model, options);
+  } else if(type == "charConv") {
+    return New<ScorerWrapper<CharConvModel>>(fname, weight, model, options);
   } else {
     UTIL_THROW2("Unknown decoder type: " + type);
   }

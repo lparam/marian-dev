@@ -233,7 +233,6 @@ class MultiConvolution : public ConvPoolingBase {
       Expr input = xNCHW;
       std::vector<Expr> outputs;
 
-      debug(xNCHW, "x NVHW");
       for (int i = 0; i < size_; ++i) {
         int kernelWidth = kernelWidths_[i];
         int kernelDim = kernelNums_[i];
@@ -249,14 +248,11 @@ class MultiConvolution : public ConvPoolingBase {
         auto relued = relu(output);
         // auto output2 = max_pooling(relued, 5, 1, 0, 0, 5, 1);
         auto output2 = max_pooling2(relued, maskNCHW, 5, kernelWidth % 2 == 0);
-        debug(output2, "pooling output: " + std::to_string(i));
-        debug(relued, "relued output: " + std::to_string(i));
 
         outputs.push_back(output2);
       }
 
       auto concated = concatenate(outputs, 1);
-      debug(concated, "concated");
 
       return concated;
     }

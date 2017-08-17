@@ -119,8 +119,11 @@ public:
       int layersA = layersC / 2;
       auto cnnA = ConvolutionInTime("cnn-a.", x, xMask, k, layersA);
       return New<EncoderStatePooling>(cnnC, cnnA, xMask, batch);
+    }
+    return nullptr;
+  }
 
-    } /* else if (convType == "conv-rnn") { */
+    /* } else if (convType == "conv-rnn") { */
       // int layersC = 6;
       // int layersA = 3;
       // auto Wup = graph->param("W_c_up", {dimEmb, 2 * dimEmb}, init=inits::glorot_uniform);
@@ -201,11 +204,7 @@ public:
 
       // cnnA = affine(cnnA, WAdown, BAdown);
       // return New<EncoderStatePooling>(context, cnnA, xMask, batch);
-    // } else {
-      // return nullptr;
-    /* } */
 
-  }
 };
 
 typedef EncoderDecoder<EncoderPooling, DecoderS2S> PoolingModel;

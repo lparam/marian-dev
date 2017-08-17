@@ -6,6 +6,7 @@
 #include "experimental/convolution/conv_nmt.h"
 #include "models/experimental/pooling.h"
 #include "models/multi_s2s.h"
+#include "models/experimental/char_conv.h"
 
 namespace marian {
 
@@ -29,6 +30,7 @@ Ptr<ModelTask> WrapModelType(Ptr<Config> options) {
   REGISTER_MODEL("hard-soft-att", HardSoftAtt);
   REGISTER_MODEL("convolution", ConvNMT);
   REGISTER_MODEL("pooling", PoolingModel);
+  REGISTER_MODEL("charConv", CharConvModel);
 
   REGISTER_MODEL("multi-s2s", MultiS2S);
   REGISTER_MODEL("multi-conv", MultiConvS2S);

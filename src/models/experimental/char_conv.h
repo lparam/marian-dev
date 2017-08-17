@@ -57,8 +57,8 @@ public:
     auto convolution = MultiConvolution("multi_conv", dimEmb, convWidths, convSizes)
       (batchEmbeddings, batchMask);
     auto highway = Highway("highway", 4)(convolution);
-    Expr context = applyEncoderRNN(graph, batchEmbeddings, batchMask, batchIdx);
     Expr stridedMask = getStridedMask(graph, batch, batchIdx, stride);
+    Expr context = applyEncoderRNN(graph, highway, stridedMask, batchIdx);
 
     return New<EncoderState>(context, stridedMask, batch);
   }

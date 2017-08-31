@@ -433,9 +433,7 @@ struct RowsNodeOp : public UnaryNodeOp {
 
   template <class... Args>
   Shape newShape(Expr a, const std::vector<size_t>& indeces) {
-    Shape shape = a->shape();
-    shape.set(0, indeces.size());
-    return shape;
+    return Shape({(int)indeces.size(), a->shape()[1], 1, 1});
   }
 
   const std::string type() { return "rows"; }

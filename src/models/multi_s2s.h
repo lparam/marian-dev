@@ -226,4 +226,13 @@ public:
       : EncoderDecoder(options, {0, 1, 2}, args...) {}
 };
 
+typedef MultiEncoder<EncoderS2S, EncoderPooling> CharBPEEncoder;
+
+class CharBPES2S : public EncoderDecoder<CharBPEEncoder, MultiDecoderS2S> {
+public:
+  template <class... Args>
+  MultiConvS2S(Ptr<Config> options, Args... args)
+      : EncoderDecoder(options, {0, 1, 2}, args...) {}
+};
+
 }

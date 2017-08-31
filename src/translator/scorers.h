@@ -229,6 +229,8 @@ Ptr<Scorer> scorerByType(std::string fname,
     return New<ScorerWrapper<MultiConvS2S>>(fname, weight, model, options);
   } else if(type == "charConv") {
     return New<ScorerWrapper<CharConvModel>>(fname, weight, model, options);
+  } else if(type == "char-bpe") {
+    return New<ScorerWrapper<CharBPES2S>>(fname, weight, model, options);
   } else {
     UTIL_THROW2("Unknown decoder type: " + type);
   }

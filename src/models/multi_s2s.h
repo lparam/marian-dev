@@ -3,6 +3,7 @@
 #include "marian.h"
 #include "models/s2s.h"
 #include "models/experimental/pooling.h"
+#include "models/experimental/char_conv.h"
 
 namespace marian {
 
@@ -58,8 +59,8 @@ Ptr<rnn::RNN> constructDecoderRNN(Ptr<ExpressionGraph> graph,
   float dropoutRnn = inference_ ? 0 : opt<float>("dropout-rnn");
   auto rnn = rnn::rnn(graph)
              ("type", opt<std::string>("dec-cell"))
-             ("dimInput", opt<int>("dim-emb"))
-             ("dimState", opt<int>("dim-rnn"))
+             ("dimInput", opt<std::vector<int>>("dim-emb").back())
+             ("dimState", opt<std::vector<int>>("dim-rnn").back())
              ("dropout", dropoutRnn)
              ("layer-normalization", opt<bool>("layer-normalization"))
              ("skip", opt<bool>("skip"));
@@ -130,7 +131,7 @@ public:
     auto mlp = mlp::mlp(graph)
                .push_back(mlp::dense(graph)
                           ("prefix", prefix_ + "_ff_state")
-                          ("dim", opt<int>("dim-rnn"))
+                          ("dim", opt<std::vector<int>>("dim-rnn").back())
                           ("activation", mlp::act::tanh)
                           ("layer-normalization", opt<bool>("layer-normalization")));
     auto start = mlp->apply(meanContext1, meanContext2);
@@ -178,7 +179,7 @@ public:
     // construct deep output multi-layer network layer-wise
     auto layer1 = mlp::dense(graph)
                   ("prefix", prefix_ + "_ff_logit_l1")
-                  ("dim", opt<int>("dim-emb"))
+                  ("dim", opt<std::vector<int>>("dim-emb").back())
                   ("activation", mlp::act::tanh)
                   ("layer-normalization", opt<bool>("layer-normalization"));
 
@@ -226,12 +227,12 @@ public:
       : EncoderDecoder(options, {0, 1, 2}, args...) {}
 };
 
-typedef MultiEncoder<EncoderS2S, EncoderPooling> CharBPEEncoder;
+typedef MultiEncoder<CharConvEncoder, EncoderS2S> CharBPEEncoder;
 
 class CharBPES2S : public EncoderDecoder<CharBPEEncoder, MultiDecoderS2S> {
 public:
   template <class... Args>
-  MultiConvS2S(Ptr<Config> options, Args... args)
+  CharBPES2S(Ptr<Config> options, Args... args)
       : EncoderDecoder(options, {0, 1, 2}, args...) {}
 };
 

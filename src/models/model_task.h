@@ -7,6 +7,7 @@
 #include "models/experimental/pooling.h"
 #include "models/multi_s2s.h"
 #include "models/experimental/char_conv.h"
+#include "models/schwenk.h"
 
 namespace marian {
 
@@ -36,6 +37,7 @@ Ptr<ModelTask> WrapModelType(Ptr<Config> options) {
   REGISTER_MODEL("multi-conv", MultiConvS2S);
   REGISTER_MODEL("char-bpe", CharBPES2S);
   REGISTER_MODEL("multi-hard-att", MultiHardSoftAtt);
+  REGISTER_MODEL("schwenk", Schwenk);
 
   UTIL_THROW2("Unknown model type: " << type);
 }

@@ -21,7 +21,7 @@ class TensorGPU;
 
 cublasHandle_t create_handle(size_t);
 
-void Transpose4D(Tensor out, Tensor in, Shape tranpose);
+void Transpose4D(Tensor out, Tensor in, const std::array<int, 4>& transpose);
 
 void Select(Tensor out, Tensor in, int axis, const std::vector<size_t>&);
 void Insert(Tensor out, Tensor in, int axis, const std::vector<size_t>&);
@@ -1043,8 +1043,6 @@ void CudnnLogSoftmaxGrad(Tensor grad, Tensor adj, Tensor val);
 void CrossEntropyPick(Tensor out, Tensor in, Tensor pick);
 void CrossEntropyPickBackward(Tensor out, Tensor adj, Tensor a, Tensor pick);
 
-void Argmax(Tensor Out, const Tensor In);
-
 void Prod(cublasHandle_t handle,
           Tensor C,
           const Tensor A,
@@ -1076,11 +1074,10 @@ void CopyCols(Tensor out, const Tensor in, const std::vector<size_t>& indeces);
 
 void PasteCols(Tensor out, const Tensor in, const std::vector<size_t>& indeces);
 
-void Transpose(cublasHandle_t cublasHandle, Tensor out, const Tensor in);
+//void Transpose(cublasHandle_t cublasHandle, Tensor out, const Tensor in);
 
-void Concatenate(Tensor out, const std::vector<Tensor>& inputs, int ax);
-
-void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax);
+//void Concatenate(Tensor out, const std::vector<Tensor>& inputs, int ax);
+//void Deconcatenate(std::vector<Tensor>& outputs, const Tensor in, int ax);
 
 void LSTMCellForward(Tensor out, std::vector<Tensor> inputs);
 void LSTMOutputForward(Tensor out, std::vector<Tensor> inputs);

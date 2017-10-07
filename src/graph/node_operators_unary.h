@@ -656,45 +656,15 @@ struct SelectNodeOp : public UnaryNodeOp {
   int axis_{0};
 };
 
-struct TransposeNodeOp : public UnaryNodeOp {
-  template <typename... Args>
-  TransposeNodeOp(Expr a, Args... args)
-      : UnaryNodeOp(a, keywords::shape = newShape(a), args...) {}
-
-  NodeOps forwardOps() {
-    return {NodeOp(Transpose(
-        std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
-        val_,
-        child(0)->val()))};
-  }
-
-  NodeOps backwardOps() {
-    return {NodeOp(Transpose(
-        std::static_pointer_cast<BackendGPU>(getBackend())->getCublasHandle(),
-        child(0)->grad(),
-        adj_))};
-  }
-
-  template <class... Args>
-  Shape newShape(Expr a) {
-    Shape shape = a->shape();
-    int temp = shape[0];
-    shape.set(0, shape[1]);
-    shape.set(1, temp);
-    return shape;
-  }
-
-  const std::string type() { return "transpose"; }
-
-  const std::string color() { return "orange"; }
-};
-
 struct Transpose4DNodeOp : public UnaryNodeOp {
-  Shape permute_;
+  std::array<int, 4> permute_;
 
-  Transpose4DNodeOp(Expr a, Shape permute)
-      : UnaryNodeOp(a, keywords::shape = newShape(a, permute)),
-        permute_{permute} {}
+  Transpose4DNodeOp(Expr a, const std::array<int, 4>& permute)
+      : UnaryNodeOp(a, keywords::shape = newShape(a, permute))
+  {
+    for(int i = 0; i < 4; ++i)
+      permute_[i] = i < permute.size() ? permute[i] : i;
+  }
 
   NodeOps forwardOps() {
     return { NodeOp(Transpose4D(val_, child(0)->val(), permute_)) };
@@ -705,7 +675,7 @@ struct Transpose4DNodeOp : public UnaryNodeOp {
   }
 
   template <class... Args>
-  Shape newShape(Expr a, Shape permute) {
+  Shape newShape(Expr a, const std::array<int, 4>& permute) {
     Shape shape;
 
     for(int i = 0; i < 4; ++i)
@@ -735,7 +705,7 @@ struct Transpose4DNodeOp : public UnaryNodeOp {
     return true;
   }
 
-  const std::string type() { return "transpose4d"; }
+  const std::string type() { return "transpose"; }
 
   const std::string color() { return "orange"; }
 };

@@ -53,7 +53,7 @@ Expr dot(Expr a, Expr b, bool transA=false, bool transB=false, float scalar=1.f)
 Expr bdot(Expr a, Expr b, bool transA=false, bool transB=false, float scalar=1.f);
 
 Expr transpose(Expr a);
-Expr transpose(Expr a, Shape permute);
+Expr transpose(Expr a, const std::array<int, 4>& permute);
 
 Expr concatenate(const std::vector<Expr>& concats, keywords::axis_k ax = 0);
 

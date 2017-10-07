@@ -188,7 +188,7 @@ __global__ void gTranspose4D(float* out,
                              ShapeGPU outShape,
                              const float* in,
                              const ShapeGPU inShape,
-                             const ShapeGPU permute) {
+                             const int permute[4]) {
 
   int length = outShape.elements();
   int dims1[4];
@@ -209,7 +209,7 @@ __global__ void gTranspose4D(float* out,
   }
 }
 
-void Transpose4D(Tensor out, Tensor in, Shape permute) {
+void Transpose4D(Tensor out, Tensor in, const std::array<int, 4>& permute) {
   cudaSetDevice(out->getDevice());
 
   int length = out->shape().elements();
@@ -217,11 +217,20 @@ void Transpose4D(Tensor out, Tensor in, Shape permute) {
   int threads = std::min(MAX_THREADS, length);
   int blocks = std::min(MAX_BLOCKS, length / threads + (length % threads != 0));
 
+  int* d_permute;
+  CUDA_CHECK(cudaMalloc(&d_permute, 4 * sizeof(int)));
+  CUDA_CHECK(cudaMemcpy(d_permute,
+                        permute.data(),
+                        4 * sizeof(int),
+                        cudaMemcpyHostToDevice));
+
   gTranspose4D<<<blocks, threads>>>(out->data(),
                                     out->shape(),
                                     in->data(),
                                     in->shape(),
-                                    permute);
+                                    d_permute);
+
+  CUDA_CHECK(cudaFree(d_permute));
 }
 
 __global__ void gSoftmax(float* out,
@@ -564,17 +573,6 @@ __global__ void gArgmax(float* out,
   }
   out[row] = maxInd;
 }
-
-// void Argmax(Tensor* Out, const Tensor* In) {
-//  size_t m = In->shape()[0];
-//  size_t k = In->shape()[1];
-//
-//  int blocks = m; //std::min(MAX_BLOCKS, (int) m);
-//  int threads = k; //std::min(MAX_THREADS, (int) k);
-//  //int shared = sizeof(float) * threads * 2;
-//  gArgmax<<<blocks, threads>>>(Out->data(), In->data(), m, k);
-//
-//}
 
 ///////////////////////////////////////////////////////
 

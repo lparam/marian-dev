@@ -119,11 +119,15 @@ Expr flatten(Expr a) {
 }
 
 Expr rows(Expr a, const std::vector<size_t>& indices) {
-  return Expression<RowsNodeOp>(a, indices);
+  return Expression<SelectNodeOp>(a, 0, indices);
 }
 
 Expr cols(Expr a, const std::vector<size_t>& indices) {
-  return Expression<ColsNodeOp>(a, indices);
+  return Expression<SelectNodeOp>(a, 1, indices);
+}
+
+Expr step(Expr a, size_t step) {
+  return Expression<TimestepNodeOp>(a, step);
 }
 
 Expr select(Expr a, int axis, const std::vector<size_t>& indices) {
@@ -157,15 +161,11 @@ Expr bdot(Expr a, Expr b, bool transA, bool transB, float scalar) {
 }
 
 Expr transpose(Expr a) {
-  return Expression<TransposeNodeOp>(a);
+  return Expression<Transpose4DNodeOp>(a, std::array<int,4>{1, 0, 2, 3});
 }
 
-Expr transpose(Expr a, Shape permute) {
+Expr transpose(Expr a, const std::array<int, 4>& permute) {
   return Expression<Transpose4DNodeOp>(a, permute);
-}
-
-Expr step(Expr a, size_t step) {
-  return Expression<TimestepNodeOp>(a, step);
 }
 
 Expr cross_entropy(Expr a, Expr b) {
@@ -233,10 +233,6 @@ Expr highway(Expr y, Expr x, Expr t) {
 Expr shift(Expr a, Shape shift) {
   return Expression<ShiftNodeOp>(a, shift);
 }
-
-//Expr lexical_bias(Expr logits, Expr att, float eps, Ptr<sparse::CSR> lf) {
-//  return Expression<LexicalProbNodeOp>(logits, att, eps, lf);
-//}
 
 #ifdef CUDNN
 
